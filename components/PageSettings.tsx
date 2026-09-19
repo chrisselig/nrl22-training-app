@@ -20,6 +20,7 @@ export function PageSettings() {
   const [practiceUnit, setPracticeUnit] = useState<DistanceUnit>(
     session.globalPracticeDistance?.unit ?? "m",
   );
+  const [error, setError] = useState<string | null>(null);
 
   function applyPracticeDistance(
     nextEnabled: boolean,
@@ -27,13 +28,21 @@ export function PageSettings() {
     unit: DistanceUnit,
   ) {
     if (!nextEnabled) {
+      setError(null);
       setGlobalPracticeDistance(undefined);
       return;
     }
     const numeric = Number(value);
-    setGlobalPracticeDistance(
-      numeric > 0 ? { value: numeric, unit } : undefined,
-    );
+    if (!Number.isFinite(numeric) || numeric <= 0) {
+      // Invalid input must not silently fall back to full-scale printing
+      // while the checkbox still reads "enabled" — that would print every
+      // target at the wrong size with no visible warning.
+      setError("Practice distance must be a positive number.");
+      setGlobalPracticeDistance(undefined);
+      return;
+    }
+    setError(null);
+    setGlobalPracticeDistance({ value: numeric, unit });
   }
 
   return (
@@ -106,6 +115,9 @@ export function PageSettings() {
               <option value="m">m</option>
             </select>
           </div>
+        )}
+        {usePractice && error && (
+          <p className="text-xs text-red-600 dark:text-red-400">{error}</p>
         )}
       </div>
     </div>
