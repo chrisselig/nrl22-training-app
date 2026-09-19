@@ -1,36 +1,48 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# NRL22 Target Printer
 
-## Getting Started
+A PWA for building an NRL22 course of fire and printing exact-scale
+practice targets — scaled to whatever distance you'll actually be shooting
+from, not just the official match distance.
 
-First, run the development server:
+## What it does
+
+1. Add each target from your course of fire: shape (circle/square/diamond/
+   rectangle), angular size (MIL or MOA), and the official represented
+   distance.
+2. Optionally set a global practice distance (e.g. "I'll be shooting from
+   25 yd") — every target scales down to look correct from that distance
+   and prints it at the top of every page. Leave it unset to print targets
+   at true/full scale.
+3. Export a PDF, feed graph paper into your printer, and print at
+   **Actual Size / 100%** (never "fit to page").
+
+Everything runs client-side — no account, no backend, works offline once
+installed as a PWA.
+
+## Getting started
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000. Note: the PWA service worker is only generated
+in production builds (`npm run build && npm start`) — see `CLAUDE.md` for
+why.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Script              | What it does                                       |
+| ------------------- | -------------------------------------------------- |
+| `npm run dev`       | Local dev server (Turbopack)                       |
+| `npm run build`     | Production build (webpack, for the service worker) |
+| `npm run test`      | Unit tests (Vitest)                                |
+| `npm run typecheck` | `tsc --noEmit`                                     |
+| `npm run lint`      | ESLint                                             |
+| `npm run format`    | Prettier (write)                                   |
 
-## Learn More
+## Project docs
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+See `CLAUDE.md` for architecture, and
+`.claude/skills/nrl22-target-math/SKILL.md` for the verified MIL/MOA sizing
+math this app is built on.
