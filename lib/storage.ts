@@ -1,14 +1,61 @@
-import { createEmptySession, type Session } from "./types";
+import {
+  createEmptySession,
+  type Angular,
+  type Distance,
+  type Session,
+  type Target,
+} from "./types";
 
 const STORAGE_KEY = "nrl22-target-session-v1";
+
+function isPositiveFinite(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value) && value > 0;
+}
+
+function isDistance(value: unknown): value is Distance {
+  if (typeof value !== "object" || value === null) return false;
+  const v = value as Record<string, unknown>;
+  return isPositiveFinite(v.value) && (v.unit === "yd" || v.unit === "m");
+}
+
+function isAngular(value: unknown): value is Angular {
+  if (typeof value !== "object" || value === null) return false;
+  const v = value as Record<string, unknown>;
+  return isPositiveFinite(v.value) && (v.unit === "mil" || v.unit === "moa");
+}
+
+// Validates nested numeric fields, not just top-level shape — a corrupted
+// or hand-edited localStorage entry with e.g. a non-numeric angularSize
+// must be rejected here rather than flowing NaN into the math/packing
+// layers, which only guard against value <= 0 (NaN comparisons are always
+// false, so that guard silently passes NaN through).
+function isTarget(value: unknown): value is Target {
+  if (typeof value !== "object" || value === null) return false;
+  const v = value as Record<string, unknown>;
+  if (typeof v.id !== "string") return false;
+  if (!isDistance(v.representedRange)) return false;
+  if (v.overrideDistance !== undefined && !isDistance(v.overrideDistance)) {
+    return false;
+  }
+  if (v.shape === "circle" || v.shape === "square" || v.shape === "diamond") {
+    return isAngular(v.angularSize);
+  }
+  if (v.shape === "rectangle") {
+    return isAngular(v.angularWidth) && isAngular(v.angularHeight);
+  }
+  return false;
+}
 
 function isSession(value: unknown): value is Session {
   if (typeof value !== "object" || value === null) return false;
   const v = value as Record<string, unknown>;
   return (
     v.schemaVersion === 1 &&
+    (v.paperSize === "letter" || v.paperSize === "a4") &&
+    (v.globalPracticeDistance === undefined ||
+      isDistance(v.globalPracticeDistance)) &&
     Array.isArray(v.targets) &&
-    typeof v.paperSize === "string"
+    v.targets.every(isTarget)
   );
 }
 
