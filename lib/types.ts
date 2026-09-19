@@ -22,6 +22,12 @@ interface TargetBase {
    * session's global practice distance, then to representedRange itself.
    */
   overrideDistance?: Distance;
+  /**
+   * Optional stage/group name (e.g. "Stage 1"). Consecutive targets
+   * sharing the same stage are kept together on a page and printed under
+   * a shared stage header — see groupHeaderReserveIn in lib/packing.ts.
+   */
+  stage?: string;
 }
 
 export type Target =

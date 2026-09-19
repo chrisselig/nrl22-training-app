@@ -3,12 +3,18 @@ import { layoutSession } from "./target-layout";
 import { OversizedItemError } from "./packing";
 import type { Session, Target } from "./types";
 
-function circleTarget(id: string, mil: number, rangeYd: number): Target {
+function circleTarget(
+  id: string,
+  mil: number,
+  rangeYd: number,
+  stage?: string,
+): Target {
   return {
     id,
     shape: "circle",
     angularSize: { value: mil, unit: "mil" },
     representedRange: { value: rangeYd, unit: "yd" },
+    stage,
   };
 }
 
@@ -110,6 +116,40 @@ describe("layoutSession", () => {
         b.placement.xIn,
       );
     }
+  });
+
+  it("emits a stage header for targets tagged with a stage name", () => {
+    const layout = layoutSession({
+      schemaVersion: 1,
+      paperSize: "letter",
+      targets: [
+        circleTarget("a", 1, 25, "Stage 1"),
+        circleTarget("b", 1, 25, "Stage 1"),
+        circleTarget("c", 1, 25, "Stage 2"),
+      ],
+    });
+    expect(layout.stageHeaders.map((h) => h.label)).toEqual([
+      "Stage 1",
+      "Stage 2",
+    ]);
+  });
+
+  it("emits no stage headers when no target has a stage", () => {
+    const layout = layoutSession({
+      schemaVersion: 1,
+      paperSize: "letter",
+      targets: [circleTarget("a", 1, 25)],
+    });
+    expect(layout.stageHeaders).toEqual([]);
+  });
+
+  it("treats a blank stage name the same as no stage", () => {
+    const layout = layoutSession({
+      schemaVersion: 1,
+      paperSize: "letter",
+      targets: [circleTarget("a", 1, 25, "   ")],
+    });
+    expect(layout.stageHeaders).toEqual([]);
   });
 
   it("uses A4 page dimensions when selected", () => {

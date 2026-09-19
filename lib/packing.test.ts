@@ -14,6 +14,7 @@ const baseOpts: PackOptions = {
   headerReserveIn: 0,
   itemGapIn: 0.25,
   rowGapIn: 0.25,
+  groupHeaderReserveIn: 0.3,
 };
 
 function rectsOverlap(
@@ -30,16 +31,19 @@ function rectsOverlap(
 describe("packItems", () => {
   it("places a single small item just inside the top-left margin", () => {
     const items: PackItem[] = [{ id: "a", widthIn: 2, heightIn: 2 }];
-    const [placement] = packItems(items, baseOpts);
-    expect(placement.xIn).toBe(0.5);
-    expect(placement.yIn).toBe(0.5);
-    expect(placement.page).toBe(0);
+    const { placements } = packItems(items, baseOpts);
+    expect(placements[0].xIn).toBe(0.5);
+    expect(placements[0].yIn).toBe(0.5);
+    expect(placements[0].page).toBe(0);
   });
 
   it("reserves header space at the top of the page", () => {
     const items: PackItem[] = [{ id: "a", widthIn: 2, heightIn: 2 }];
-    const [placement] = packItems(items, { ...baseOpts, headerReserveIn: 1 });
-    expect(placement.yIn).toBe(1.5);
+    const { placements } = packItems(items, {
+      ...baseOpts,
+      headerReserveIn: 1,
+    });
+    expect(placements[0].yIn).toBe(1.5);
   });
 
   it("wraps to a new row when an item doesn't fit the remaining row width", () => {
@@ -48,7 +52,7 @@ describe("packItems", () => {
       { id: "a", widthIn: 4, heightIn: 2 },
       { id: "b", widthIn: 4, heightIn: 2 },
     ];
-    const placements = packItems(items, baseOpts);
+    const { placements } = packItems(items, baseOpts);
     expect(placements[0].yIn).toBe(0.5);
     expect(placements[1].xIn).toBe(0.5);
     expect(placements[1].yIn).toBeCloseTo(0.5 + 2 + baseOpts.rowGapIn, 5);
@@ -63,7 +67,7 @@ describe("packItems", () => {
       { id: "b", widthIn: 7, heightIn: 4 },
       { id: "c", widthIn: 7, heightIn: 4 },
     ];
-    const placements = packItems(items, baseOpts);
+    const { placements } = packItems(items, baseOpts);
     expect(placements[0].page).toBe(0);
     expect(placements[1].page).toBe(0);
     expect(placements[2].page).toBe(1);
@@ -76,7 +80,7 @@ describe("packItems", () => {
       widthIn: 3,
       heightIn: 3,
     }));
-    const placements = packItems(items, baseOpts);
+    const { placements } = packItems(items, baseOpts);
     expect(placements.map((p) => p.id)).toEqual(items.map((i) => i.id));
 
     for (let i = 1; i < placements.length; i++) {
@@ -95,7 +99,7 @@ describe("packItems", () => {
       widthIn: 1.5 + (i % 3) * 0.5,
       heightIn: 1.5 + (i % 2) * 0.7,
     }));
-    const placements = packItems(items, baseOpts);
+    const { placements } = packItems(items, baseOpts);
 
     for (let i = 0; i < placements.length; i++) {
       for (let j = i + 1; j < placements.length; j++) {
@@ -115,8 +119,87 @@ describe("packItems", () => {
     expect(() => packItems(items, { ...baseOpts, marginIn: 5 })).toThrow();
   });
 
-  it("returns an empty array for an empty item list", () => {
-    expect(packItems([], baseOpts)).toEqual([]);
+  it("returns no placements or group headers for an empty item list", () => {
+    expect(packItems([], baseOpts)).toEqual({
+      placements: [],
+      groupHeaders: [],
+    });
+  });
+
+  it("does not emit a group header for ungrouped items", () => {
+    const items: PackItem[] = [{ id: "a", widthIn: 2, heightIn: 2 }];
+    const { groupHeaders } = packItems(items, baseOpts);
+    expect(groupHeaders).toEqual([]);
+  });
+
+  it("keeps a labeled group together, jumping to a new page rather than splitting it", () => {
+    // Filler fills most of page 1 (usable height 10in), leaving too little
+    // room for "Stage 2"'s block (header + items) to fit alongside it.
+    const items: PackItem[] = [
+      { id: "filler", widthIn: 7, heightIn: 9 },
+      { id: "s2-a", widthIn: 3, heightIn: 3, group: "Stage 2" },
+      { id: "s2-b", widthIn: 3, heightIn: 3, group: "Stage 2" },
+    ];
+    const { placements, groupHeaders } = packItems(items, baseOpts);
+
+    const filler = placements.find((p) => p.id === "filler")!;
+    const s2a = placements.find((p) => p.id === "s2-a")!;
+    const s2b = placements.find((p) => p.id === "s2-b")!;
+
+    expect(filler.page).toBe(0);
+    expect(s2a.page).toBe(1);
+    expect(s2b.page).toBe(1);
+
+    expect(groupHeaders).toHaveLength(1);
+    expect(groupHeaders[0].label).toBe("Stage 2");
+    expect(groupHeaders[0].page).toBe(1);
+    expect(groupHeaders[0].yIn).toBe(0.5);
+    // The group's items must sit below its own header, not above it.
+    expect(s2a.yIn).toBeGreaterThan(groupHeaders[0].yIn);
+  });
+
+  it("packs two small labeled groups onto the same page when they both fit", () => {
+    const items: PackItem[] = [
+      { id: "a", widthIn: 3, heightIn: 2, group: "Stage A" },
+      { id: "b", widthIn: 3, heightIn: 2, group: "Stage B" },
+    ];
+    const { placements, groupHeaders } = packItems(items, baseOpts);
+
+    expect(placements.every((p) => p.page === 0)).toBe(true);
+    expect(groupHeaders).toHaveLength(2);
+    expect(groupHeaders.every((h) => h.page === 0)).toBe(true);
+    // Stage B's header must be below Stage A's block, not overlapping it.
+    expect(groupHeaders[1].yIn).toBeGreaterThan(groupHeaders[0].yIn);
+  });
+
+  it("treats the same stage name reappearing non-consecutively as two separate blocks", () => {
+    const items: PackItem[] = [
+      { id: "a", widthIn: 2, heightIn: 2, group: "Stage 1" },
+      { id: "b", widthIn: 2, heightIn: 2, group: "Stage 2" },
+      { id: "c", widthIn: 2, heightIn: 2, group: "Stage 1" },
+    ];
+    const { groupHeaders } = packItems(items, baseOpts);
+    expect(groupHeaders).toHaveLength(3);
+    expect(groupHeaders.map((h) => h.label)).toEqual([
+      "Stage 1",
+      "Stage 2",
+      "Stage 1",
+    ]);
+  });
+
+  it("packs an all-ungrouped item list identically to the pre-grouping algorithm", () => {
+    // Backward-compat guard: an entirely ungrouped list is one implicit
+    // block, so the "keep block together" pre-check only ever evaluates
+    // at the very start (cursorYIn === 0), where it's always a no-op.
+    const items: PackItem[] = [
+      { id: "a", widthIn: 7, heightIn: 4 },
+      { id: "b", widthIn: 7, heightIn: 4 },
+      { id: "c", widthIn: 7, heightIn: 4 },
+    ];
+    const { placements, groupHeaders } = packItems(items, baseOpts);
+    expect(groupHeaders).toEqual([]);
+    expect(placements[2].page).toBe(1);
+    expect(placements[2].yIn).toBe(0.5);
   });
 });
 
@@ -131,7 +214,7 @@ describe("pageCount", () => {
       { id: "b", widthIn: 7, heightIn: 4 },
       { id: "c", widthIn: 7, heightIn: 4 },
     ];
-    const placements = packItems(items, baseOpts);
+    const { placements } = packItems(items, baseOpts);
     expect(pageCount(placements)).toBe(2);
   });
 });

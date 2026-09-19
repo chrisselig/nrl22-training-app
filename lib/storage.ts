@@ -37,6 +37,7 @@ function isTarget(value: unknown): value is Target {
   if (v.overrideDistance !== undefined && !isDistance(v.overrideDistance)) {
     return false;
   }
+  if (v.stage !== undefined && typeof v.stage !== "string") return false;
   if (v.shape === "circle" || v.shape === "square" || v.shape === "diamond") {
     return isAngular(v.angularSize);
   }

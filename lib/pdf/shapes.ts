@@ -3,13 +3,33 @@ import {
   CENTER_DOT_RADIUS_IN,
   PT_PER_IN,
   SHAPE_FONT_SIZE_PT,
+  STAGE_HEADER_FONT_SIZE_PT,
+  STAGE_HEADER_RESERVE_IN,
 } from "./constants";
 import { formatLabel } from "../target-math";
 import type { LaidOutTarget } from "../target-layout";
+import type { GroupHeader } from "../packing";
 
 const STROKE_COLOR = rgb(0.1, 0.1, 0.1);
 const STROKE_WIDTH_PT = 1.5;
 const TEXT_COLOR = rgb(0.15, 0.15, 0.15);
+const STAGE_HEADER_COLOR = rgb(0.05, 0.05, 0.05);
+
+/**
+ * placement.yIn (and any other top-down inch offset in this module) is
+ * measured from the page's top edge, matching lib/packing.ts and the
+ * on-screen preview; PDF space is bottom-up. This is the one shared flip
+ * formula — every other geometry calculation downstream must call this
+ * rather than re-deriving the flip inline, so there's only ever one place
+ * that can get the sign wrong.
+ */
+function flipTopDownYToPdfPt(
+  topYIn: number,
+  heightIn: number,
+  pageHeightPt: number,
+): number {
+  return pageHeightPt - topYIn * PT_PER_IN - heightIn * PT_PER_IN;
+}
 
 interface ShapeGeometry {
   xPt: number;
@@ -21,11 +41,6 @@ interface ShapeGeometry {
 }
 
 /**
- * placement.yIn is top-down inches from the page's top edge (matching
- * lib/packing.ts and the on-screen preview); PDF space is bottom-up. This
- * is the one place that flip happens — every other geometry calculation
- * downstream works in plain PDF (bottom-up) points.
- *
  * placement.widthIn is the packed box width, which may be wider than the
  * shape itself when the label text is wider than the shape (see
  * estimateLabelWidthIn in target-layout.ts) — the shape is centered
@@ -39,8 +54,11 @@ function shapeGeometryPt(
   const heightPt = item.shapeHeightIn * PT_PER_IN;
   const boxWidthPt = item.placement.widthIn * PT_PER_IN;
   const xPt = item.placement.xIn * PT_PER_IN + (boxWidthPt - widthPt) / 2;
-  const topYPt = item.placement.yIn * PT_PER_IN;
-  const bottomYPt = pageHeightPt - topYPt - heightPt;
+  const bottomYPt = flipTopDownYToPdfPt(
+    item.placement.yIn,
+    item.shapeHeightIn,
+    pageHeightPt,
+  );
   return {
     xPt,
     bottomYPt,
@@ -130,5 +148,27 @@ export function drawTarget(
     size: SHAPE_FONT_SIZE_PT,
     font,
     color: TEXT_COLOR,
+  });
+}
+
+/** Draws a stage/group header left-aligned within its reserved strip above the stage's targets. */
+export function drawStageHeader(
+  page: PDFPage,
+  boldFont: PDFFont,
+  header: GroupHeader,
+  pageHeightPt: number,
+): void {
+  const bottomYPt = flipTopDownYToPdfPt(
+    header.yIn,
+    STAGE_HEADER_RESERVE_IN,
+    pageHeightPt,
+  );
+  const topYPt = bottomYPt + STAGE_HEADER_RESERVE_IN * PT_PER_IN;
+  page.drawText(header.label, {
+    x: header.xIn * PT_PER_IN,
+    y: topYPt - STAGE_HEADER_FONT_SIZE_PT,
+    size: STAGE_HEADER_FONT_SIZE_PT,
+    font: boldFont,
+    color: STAGE_HEADER_COLOR,
   });
 }

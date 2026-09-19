@@ -63,6 +63,11 @@ export function TargetList() {
                 {shapeGlyph[target.shape]}
               </span>
               <div className="min-w-0">
+                {target.stage && (
+                  <span className="mb-0.5 inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700 dark:bg-blue-950 dark:text-blue-300">
+                    {target.stage}
+                  </span>
+                )}
                 <p className="truncate text-sm font-medium text-neutral-900 dark:text-neutral-100">
                   {formatLabel(target)}
                 </p>

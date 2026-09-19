@@ -1,6 +1,7 @@
 import {
   packItems,
   pageCount,
+  type GroupHeader,
   type Placement,
   type PackOptions,
 } from "./packing";
@@ -14,6 +15,7 @@ import {
   PT_PER_IN,
   ROW_GAP_IN,
   SHAPE_FONT_SIZE_PT,
+  STAGE_HEADER_RESERVE_IN,
 } from "./pdf/constants";
 import type { Session, Target } from "./types";
 
@@ -45,6 +47,8 @@ export interface SessionLayout {
   pageHeightIn: number;
   headerReserveIn: number;
   items: LaidOutTarget[];
+  /** Print positions for each labeled stage's header, one entry per stage block. */
+  stageHeaders: GroupHeader[];
   pageCount: number;
 }
 
@@ -72,9 +76,10 @@ export function layoutSession(session: Session): SessionLayout {
     headerReserveIn,
     itemGapIn: ITEM_GAP_IN,
     rowGapIn: ROW_GAP_IN,
+    groupHeaderReserveIn: STAGE_HEADER_RESERVE_IN,
   };
 
-  const placements = packItems(
+  const { placements, groupHeaders } = packItems(
     sized.map((s) => ({
       id: s.target.id,
       // The packed box must be wide enough for the label text too, not
@@ -82,6 +87,7 @@ export function layoutSession(session: Session): SessionLayout {
       // wider than the shape itself (see estimateLabelWidthIn above).
       widthIn: Math.max(s.shapeWidthIn, estimateLabelWidthIn(s.target)),
       heightIn: s.shapeHeightIn + LABEL_RESERVE_IN,
+      group: s.target.stage?.trim() || undefined,
     })),
     packOptions,
   );
@@ -106,6 +112,7 @@ export function layoutSession(session: Session): SessionLayout {
     pageHeightIn: page.heightIn,
     headerReserveIn,
     items,
+    stageHeaders: groupHeaders,
     pageCount: pageCount(placements),
   };
 }

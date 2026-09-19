@@ -4,6 +4,8 @@ import { useMemo } from "react";
 import { useSession } from "./SessionProvider";
 import { layoutSession, type LaidOutTarget } from "@/lib/target-layout";
 import { formatLabel } from "@/lib/target-math";
+import { STAGE_HEADER_RESERVE_IN } from "@/lib/pdf/constants";
+import type { GroupHeader } from "@/lib/packing";
 
 // Screen-preview scale only — not physically accurate. The PDF export
 // (lib/pdf/generate-target-pdf.ts) is the source of truth for exact
@@ -70,6 +72,17 @@ function TargetSvg({ item }: { item: LaidOutTarget }) {
   );
 }
 
+function StageHeaderSvg({ header }: { header: GroupHeader }) {
+  const xPx = header.xIn * PX_PER_IN;
+  // Baseline near the bottom of the reserved strip, matching lib/pdf/shapes.ts's drawStageHeader.
+  const yPx = (header.yIn + STAGE_HEADER_RESERVE_IN) * PX_PER_IN - 5;
+  return (
+    <text x={xPx} y={yPx} fontSize={13} fontWeight={700} fill="currentColor">
+      {header.label}
+    </text>
+  );
+}
+
 export function PreviewCanvas() {
   const { session } = useSession();
 
@@ -101,8 +114,14 @@ export function PreviewCanvas() {
     );
   }
 
-  const { pageWidthIn, pageHeightIn, headerReserveIn, items, pageCount } =
-    layout.data!;
+  const {
+    pageWidthIn,
+    pageHeightIn,
+    headerReserveIn,
+    items,
+    stageHeaders,
+    pageCount,
+  } = layout.data!;
   const pageWidthPx = pageWidthIn * PX_PER_IN;
   const pageHeightPx = pageHeightIn * PX_PER_IN;
 
@@ -138,6 +157,11 @@ export function PreviewCanvas() {
                 {session.globalPracticeDistance.unit}
               </text>
             )}
+            {stageHeaders
+              .filter((header) => header.page === pageIndex)
+              .map((header, i) => (
+                <StageHeaderSvg key={`${header.label}-${i}`} header={header} />
+              ))}
             {items
               .filter((item) => item.placement.page === pageIndex)
               .map((item) => (

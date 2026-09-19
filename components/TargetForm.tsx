@@ -84,6 +84,8 @@ export function TargetForm({
     initialValue?.overrideDistance?.unit ?? "yd",
   );
 
+  const [stage, setStage] = useState(initialValue?.stage ?? "");
+
   const [error, setError] = useState<string | null>(null);
 
   function handleSubmit(e: FormEvent) {
@@ -106,6 +108,7 @@ export function TargetForm({
     }
 
     const id = initialValue?.id ?? generateId();
+    const trimmedStage = stage.trim() || undefined;
 
     if (shape === "rectangle") {
       const angularWidthVal: Distance["value"] = Number(angularWidth);
@@ -125,6 +128,7 @@ export function TargetForm({
         angularHeight: { value: angularHeightVal, unit: angularHeightUnit },
         representedRange: range,
         overrideDistance: override,
+        stage: trimmedStage,
       });
       return;
     }
@@ -140,6 +144,7 @@ export function TargetForm({
       angularSize: { value: angularSizeVal, unit: angularUnit },
       representedRange: range,
       overrideDistance: override,
+      stage: trimmedStage,
     });
   }
 
@@ -166,6 +171,24 @@ export function TargetForm({
         </select>
       </div>
 
+      <div>
+        <label className={labelClass} htmlFor="stage">
+          Stage (optional)
+        </label>
+        <input
+          id="stage"
+          className={inputClass}
+          type="text"
+          placeholder="e.g. Stage 1"
+          value={stage}
+          onChange={(e) => setStage(e.target.value)}
+        />
+        <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+          Targets with the same stage print together under a shared stage
+          header, grouped tightly onto as few pages as they fit.
+        </p>
+      </div>
+
       {shape === "rectangle" ? (
         <div className="grid grid-cols-2 gap-2">
           <div>
@@ -177,7 +200,7 @@ export function TargetForm({
                 id="angularWidth"
                 className={inputClass}
                 type="number"
-                step="any"
+                step="0.1"
                 min="0"
                 value={angularWidth}
                 onChange={(e) => setAngularWidth(e.target.value)}
@@ -204,7 +227,7 @@ export function TargetForm({
                 id="angularHeight"
                 className={inputClass}
                 type="number"
-                step="any"
+                step="0.1"
                 min="0"
                 value={angularHeight}
                 onChange={(e) => setAngularHeight(e.target.value)}
@@ -233,7 +256,7 @@ export function TargetForm({
               id="angularSize"
               className={inputClass}
               type="number"
-              step="any"
+              step="0.1"
               min="0"
               value={angularValue}
               onChange={(e) => setAngularValue(e.target.value)}

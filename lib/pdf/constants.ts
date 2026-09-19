@@ -18,7 +18,10 @@ export const ROW_GAP_IN = 0.4;
 export const HEADER_RESERVE_IN = 0.55;
 /** Reserved below each shape's bounding box for its size/distance label. */
 export const LABEL_RESERVE_IN = 0.26;
+/** Reserved above a labeled stage's targets for its stage header text. */
+export const STAGE_HEADER_RESERVE_IN = 0.32;
 
 export const CENTER_DOT_RADIUS_IN = 0.02;
 export const SHAPE_FONT_SIZE_PT = 8;
 export const HEADER_FONT_SIZE_PT = 13;
+export const STAGE_HEADER_FONT_SIZE_PT = 11;

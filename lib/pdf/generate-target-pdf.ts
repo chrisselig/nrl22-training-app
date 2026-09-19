@@ -1,6 +1,6 @@
 import { PDFDocument, StandardFonts, rgb } from "@cantoo/pdf-lib";
 import { HEADER_FONT_SIZE_PT, PT_PER_IN } from "./constants";
-import { drawTarget } from "./shapes";
+import { drawStageHeader, drawTarget } from "./shapes";
 import { layoutSession } from "../target-layout";
 import type { Session } from "../types";
 
@@ -54,6 +54,11 @@ export async function buildTargetPdf(session: Session): Promise<Uint8Array> {
       font,
       color: REMINDER_COLOR,
     });
+  }
+
+  for (const header of layout.stageHeaders) {
+    const page = pages[header.page];
+    drawStageHeader(page, boldFont, header, pageHeightPt);
   }
 
   for (const item of layout.items) {
