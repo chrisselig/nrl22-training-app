@@ -14,11 +14,25 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "NRL22 Target Printer",
-  description: "Build a course of fire and print exact-scale NRL22 practice targets.",
+  description:
+    "Build a course of fire and print exact-scale NRL22 practice targets.",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
     title: "NRL22 Targets",
+  },
+  icons: {
+    icon: [
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [
+      {
+        url: "/icons/apple-touch-icon.png",
+        sizes: "180x180",
+        type: "image/png",
+      },
+    ],
   },
 };
 

@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Generated Serwist service worker bundle, rebuilt on every `npm run build`.
+    "public/sw.js",
+    "public/sw.js.map",
+    "public/swe-worker*.js",
   ]),
 ]);
 
