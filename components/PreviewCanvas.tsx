@@ -13,10 +13,14 @@ const PX_PER_IN = 46;
 
 function TargetSvg({ item }: { item: LaidOutTarget }) {
   const { target, placement, shapeWidthIn, shapeHeightIn } = item;
-  const xPx = placement.xIn * PX_PER_IN;
-  const yPx = placement.yIn * PX_PER_IN;
   const wPx = shapeWidthIn * PX_PER_IN;
   const hPx = shapeHeightIn * PX_PER_IN;
+  // The packed box (placement.widthIn) may be wider than the shape when
+  // the label text is wider than the shape itself — center the shape
+  // horizontally within that box, matching lib/pdf/shapes.ts.
+  const boxWidthPx = placement.widthIn * PX_PER_IN;
+  const xPx = placement.xIn * PX_PER_IN + (boxWidthPx - wPx) / 2;
+  const yPx = placement.yIn * PX_PER_IN;
   const cx = xPx + wPx / 2;
   const cy = yPx + hPx / 2;
 

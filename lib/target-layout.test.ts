@@ -88,6 +88,30 @@ describe("layoutSession", () => {
     expect(() => layoutSession(session)).toThrow(OversizedItemError);
   });
 
+  it("widens the packed box beyond the shape when the label text is wider (no overlap)", () => {
+    // Reviewer repro: a tiny target ("0.3 MIL · 15 yd") has a shape far
+    // narrower than its printed label, which used to let neighboring
+    // labels visually overlap since packing only accounted for shape width.
+    const targets = [
+      circleTarget("a", 0.3, 15),
+      circleTarget("b", 0.3, 15),
+      circleTarget("c", 0.3, 15),
+    ];
+    const layout = layoutSession({
+      schemaVersion: 1,
+      paperSize: "letter",
+      targets,
+    });
+    const [a, b] = layout.items;
+    expect(a.placement.widthIn).toBeGreaterThan(a.shapeWidthIn);
+    // Boxes on the same row must not overlap.
+    if (a.placement.yIn === b.placement.yIn) {
+      expect(a.placement.xIn + a.placement.widthIn).toBeLessThanOrEqual(
+        b.placement.xIn,
+      );
+    }
+  });
+
   it("uses A4 page dimensions when selected", () => {
     const letter = layoutSession({
       schemaVersion: 1,

@@ -4,16 +4,34 @@ import {
   type Placement,
   type PackOptions,
 } from "./packing";
-import { computeTargetPrintSize } from "./target-math";
+import { computeTargetPrintSize, formatLabel } from "./target-math";
 import {
   HEADER_RESERVE_IN,
   ITEM_GAP_IN,
   LABEL_RESERVE_IN,
   MARGIN_IN,
   PAGE_SIZES_IN,
+  PT_PER_IN,
   ROW_GAP_IN,
+  SHAPE_FONT_SIZE_PT,
 } from "./pdf/constants";
 import type { Session, Target } from "./types";
+
+/**
+ * layoutSession() is synchronous and shared with the browser SVG preview,
+ * which has no access to pdf-lib's embedded-font metrics, so the label's
+ * printed width can't be measured exactly here. This deliberately
+ * overestimates Helvetica's real average glyph width for this label
+ * character set (digits/letters/·/space) — a looser pack is fine, but an
+ * underestimate would let two labels visually overlap on the page.
+ */
+const AVG_LABEL_CHAR_WIDTH_EM = 0.6;
+
+function estimateLabelWidthIn(target: Target): number {
+  const label = formatLabel(target);
+  const widthPt = label.length * SHAPE_FONT_SIZE_PT * AVG_LABEL_CHAR_WIDTH_EM;
+  return widthPt / PT_PER_IN;
+}
 
 export interface LaidOutTarget {
   target: Target;
@@ -59,7 +77,10 @@ export function layoutSession(session: Session): SessionLayout {
   const placements = packItems(
     sized.map((s) => ({
       id: s.target.id,
-      widthIn: s.shapeWidthIn,
+      // The packed box must be wide enough for the label text too, not
+      // just the shape — small/scaled-down targets routinely have a label
+      // wider than the shape itself (see estimateLabelWidthIn above).
+      widthIn: Math.max(s.shapeWidthIn, estimateLabelWidthIn(s.target)),
       heightIn: s.shapeHeightIn + LABEL_RESERVE_IN,
     })),
     packOptions,
