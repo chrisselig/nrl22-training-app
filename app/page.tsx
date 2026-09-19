@@ -24,7 +24,8 @@ function Builder() {
         <header>
           <h1 className="text-xl font-semibold">NRL22 Target Printer</h1>
           <p className="text-sm text-neutral-500 dark:text-neutral-400">
-            Build a course of fire, then export an exact-scale PDF to print on graph paper.
+            Build a course of fire, then export an exact-scale PDF to print on
+            graph paper.
           </p>
         </header>
 
@@ -46,7 +47,8 @@ function Builder() {
               <button
                 type="button"
                 onClick={() => {
-                  if (confirm("Clear all targets and reset page settings?")) resetSession();
+                  if (confirm("Clear all targets and reset page settings?"))
+                    resetSession();
                 }}
                 className="text-xs font-medium text-neutral-500 hover:text-red-600 dark:text-neutral-400 dark:hover:text-red-400"
               >

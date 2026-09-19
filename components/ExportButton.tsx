@@ -33,7 +33,9 @@ export function ExportButton() {
         {busy ? "Generating…" : "Export PDF"}
       </button>
       {error && (
-        <p className="max-w-xs text-right text-xs text-red-600 dark:text-red-400">{error}</p>
+        <p className="max-w-xs text-right text-xs text-red-600 dark:text-red-400">
+          {error}
+        </p>
       )}
     </div>
   );

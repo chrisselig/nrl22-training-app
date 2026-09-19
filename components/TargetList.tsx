@@ -14,13 +14,15 @@ const shapeGlyph: Record<Target["shape"], string> = {
 };
 
 export function TargetList() {
-  const { session, updateTarget, removeTarget, duplicateTarget, moveTarget } = useSession();
+  const { session, updateTarget, removeTarget, duplicateTarget, moveTarget } =
+    useSession();
   const [editingId, setEditingId] = useState<string | null>(null);
 
   if (session.targets.length === 0) {
     return (
       <p className="rounded-lg border border-dashed border-neutral-300 p-4 text-sm text-neutral-500 dark:border-neutral-700 dark:text-neutral-400">
-        No targets yet. Add one from the course of fire above to build your practice sheet.
+        No targets yet. Add one from the course of fire above to build your
+        practice sheet.
       </p>
     );
   }

@@ -23,7 +23,9 @@ export function toYards(distance: Distance): number {
   if (distance.value <= 0) {
     throw new Error(`Distance must be positive, got ${distance.value}`);
   }
-  return distance.unit === "yd" ? distance.value : distance.value * YARDS_PER_METER;
+  return distance.unit === "yd"
+    ? distance.value
+    : distance.value * YARDS_PER_METER;
 }
 
 export function angularToInches(angular: Angular, rangeYards: number): number {
@@ -48,7 +50,9 @@ export function effectivePrintDistance(
   target: Target,
   globalPracticeDistance?: Distance,
 ): Distance {
-  return target.overrideDistance ?? globalPracticeDistance ?? target.representedRange;
+  return (
+    target.overrideDistance ?? globalPracticeDistance ?? target.representedRange
+  );
 }
 
 export interface PrintSize {

@@ -32,11 +32,17 @@ describe("toYards", () => {
 
 describe("angularToInches (verified against reference screenshot + NSSF/Everyday Marksman)", () => {
   it("matches the screenshot: 38yd range, 1.2 MIL -> 1.642in print diameter", () => {
-    expect(angularToInches({ value: 1.2, unit: "mil" }, 38)).toBeCloseTo(1.6416, 4);
+    expect(angularToInches({ value: 1.2, unit: "mil" }, 38)).toBeCloseTo(
+      1.6416,
+      4,
+    );
   });
 
   it("matches the screenshot: 1.2 MIL scaled to a 25yd practice distance -> 1.080in", () => {
-    expect(angularToInches({ value: 1.2, unit: "mil" }, 25)).toBeCloseTo(1.08, 4);
+    expect(angularToInches({ value: 1.2, unit: "mil" }, 25)).toBeCloseTo(
+      1.08,
+      4,
+    );
   });
 
   it("matches the screenshot: 38yd range, 1.2 MIL == 4.13 MOA (cross-check)", () => {
@@ -46,11 +52,17 @@ describe("angularToInches (verified against reference screenshot + NSSF/Everyday
   });
 
   it("1 MIL at 100yd is exactly 3.6 inches", () => {
-    expect(angularToInches({ value: 1, unit: "mil" }, 100)).toBeCloseTo(3.6, 10);
+    expect(angularToInches({ value: 1, unit: "mil" }, 100)).toBeCloseTo(
+      3.6,
+      10,
+    );
   });
 
   it("1 true MOA at 100yd is exactly 1.047 inches", () => {
-    expect(angularToInches({ value: 1, unit: "moa" }, 100)).toBeCloseTo(1.047, 10);
+    expect(angularToInches({ value: 1, unit: "moa" }, 100)).toBeCloseTo(
+      1.047,
+      10,
+    );
   });
 
   it("rejects non-positive angular size or range", () => {
@@ -79,7 +91,10 @@ describe("effectivePrintDistance", () => {
   });
 
   it("prefers a per-target override over the global practice distance", () => {
-    const target: Target = { ...base, overrideDistance: { value: 15, unit: "yd" } };
+    const target: Target = {
+      ...base,
+      overrideDistance: { value: 15, unit: "yd" },
+    };
     expect(effectivePrintDistance(target, { value: 25, unit: "yd" })).toEqual({
       value: 15,
       unit: "yd",

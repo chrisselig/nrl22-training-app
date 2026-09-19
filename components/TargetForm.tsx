@@ -2,7 +2,13 @@
 
 import { useState, type FormEvent } from "react";
 import { generateId } from "./SessionProvider";
-import type { AngularUnit, Distance, DistanceUnit, Shape, Target } from "@/lib/types";
+import type {
+  AngularUnit,
+  Distance,
+  DistanceUnit,
+  Shape,
+  Target,
+} from "@/lib/types";
 
 interface TargetFormProps {
   initialValue?: Target;
@@ -19,35 +25,58 @@ const SHAPES: { value: Shape; label: string }[] = [
 
 const inputClass =
   "w-full rounded-md border border-neutral-300 bg-white px-2 py-1.5 text-sm text-neutral-900 focus:border-blue-500 focus:outline-none dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100";
-const labelClass = "block text-xs font-medium text-neutral-600 dark:text-neutral-400";
+const labelClass =
+  "block text-xs font-medium text-neutral-600 dark:text-neutral-400";
 
-export function TargetForm({ initialValue, onSubmit, onCancel }: TargetFormProps) {
+export function TargetForm({
+  initialValue,
+  onSubmit,
+  onCancel,
+}: TargetFormProps) {
   const [shape, setShape] = useState<Shape>(initialValue?.shape ?? "circle");
 
   const [angularValue, setAngularValue] = useState(
-    initialValue && initialValue.shape !== "rectangle" ? String(initialValue.angularSize.value) : "1",
+    initialValue && initialValue.shape !== "rectangle"
+      ? String(initialValue.angularSize.value)
+      : "1",
   );
   const [angularUnit, setAngularUnit] = useState<AngularUnit>(
-    initialValue && initialValue.shape !== "rectangle" ? initialValue.angularSize.unit : "mil",
+    initialValue && initialValue.shape !== "rectangle"
+      ? initialValue.angularSize.unit
+      : "mil",
   );
 
   const [angularWidth, setAngularWidth] = useState(
-    initialValue?.shape === "rectangle" ? String(initialValue.angularWidth.value) : "2",
+    initialValue?.shape === "rectangle"
+      ? String(initialValue.angularWidth.value)
+      : "2",
   );
   const [angularWidthUnit, setAngularWidthUnit] = useState<AngularUnit>(
-    initialValue?.shape === "rectangle" ? initialValue.angularWidth.unit : "mil",
+    initialValue?.shape === "rectangle"
+      ? initialValue.angularWidth.unit
+      : "mil",
   );
   const [angularHeight, setAngularHeight] = useState(
-    initialValue?.shape === "rectangle" ? String(initialValue.angularHeight.value) : "1",
+    initialValue?.shape === "rectangle"
+      ? String(initialValue.angularHeight.value)
+      : "1",
   );
   const [angularHeightUnit, setAngularHeightUnit] = useState<AngularUnit>(
-    initialValue?.shape === "rectangle" ? initialValue.angularHeight.unit : "mil",
+    initialValue?.shape === "rectangle"
+      ? initialValue.angularHeight.unit
+      : "mil",
   );
 
-  const [rangeValue, setRangeValue] = useState(String(initialValue?.representedRange.value ?? "38"));
-  const [rangeUnit, setRangeUnit] = useState<DistanceUnit>(initialValue?.representedRange.unit ?? "yd");
+  const [rangeValue, setRangeValue] = useState(
+    String(initialValue?.representedRange.value ?? "38"),
+  );
+  const [rangeUnit, setRangeUnit] = useState<DistanceUnit>(
+    initialValue?.representedRange.unit ?? "yd",
+  );
 
-  const [useOverride, setUseOverride] = useState(Boolean(initialValue?.overrideDistance));
+  const [useOverride, setUseOverride] = useState(
+    Boolean(initialValue?.overrideDistance),
+  );
   const [overrideValue, setOverrideValue] = useState(
     String(initialValue?.overrideDistance?.value ?? "25"),
   );
@@ -157,7 +186,9 @@ export function TargetForm({ initialValue, onSubmit, onCancel }: TargetFormProps
                 aria-label="Width unit"
                 className={inputClass}
                 value={angularWidthUnit}
-                onChange={(e) => setAngularWidthUnit(e.target.value as AngularUnit)}
+                onChange={(e) =>
+                  setAngularWidthUnit(e.target.value as AngularUnit)
+                }
               >
                 <option value="mil">MIL</option>
                 <option value="moa">MOA</option>
@@ -182,7 +213,9 @@ export function TargetForm({ initialValue, onSubmit, onCancel }: TargetFormProps
                 aria-label="Height unit"
                 className={inputClass}
                 value={angularHeightUnit}
-                onChange={(e) => setAngularHeightUnit(e.target.value as AngularUnit)}
+                onChange={(e) =>
+                  setAngularHeightUnit(e.target.value as AngularUnit)
+                }
               >
                 <option value="mil">MIL</option>
                 <option value="moa">MOA</option>
@@ -277,7 +310,9 @@ export function TargetForm({ initialValue, onSubmit, onCancel }: TargetFormProps
         )}
       </div>
 
-      {error && <p className="text-xs text-red-600 dark:text-red-400">{error}</p>}
+      {error && (
+        <p className="text-xs text-red-600 dark:text-red-400">{error}</p>
+      )}
 
       <div className="flex gap-2 pt-1">
         <button

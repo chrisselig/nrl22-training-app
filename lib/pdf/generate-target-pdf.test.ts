@@ -46,7 +46,9 @@ describe("buildTargetPdf", () => {
   it("produces a multi-page PDF when targets overflow one page", async () => {
     // 1.9 MIL @ 50yd = 3.42in shapes: 2 fit per row, 2 rows fit page 1 (4
     // targets), forcing the 5th/6th onto page 2.
-    const targets = Array.from({ length: 6 }, (_, i) => circleTarget(`t${i}`, 1.9, 50));
+    const targets = Array.from({ length: 6 }, (_, i) =>
+      circleTarget(`t${i}`, 1.9, 50),
+    );
     const session: Session = { schemaVersion: 1, paperSize: "letter", targets };
 
     const bytes = await buildTargetPdf(session);
@@ -60,7 +62,9 @@ describe("buildTargetPdf", () => {
       paperSize: "letter",
       targets: [circleTarget("huge", 10, 500)],
     };
-    await expect(buildTargetPdf(session)).rejects.toBeInstanceOf(OversizedItemError);
+    await expect(buildTargetPdf(session)).rejects.toBeInstanceOf(
+      OversizedItemError,
+    );
   });
 
   it("places the first target near the top of the page (y-axis not inverted)", async () => {

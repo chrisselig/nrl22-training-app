@@ -1,4 +1,9 @@
-import { packItems, pageCount, type Placement, type PackOptions } from "./packing";
+import {
+  packItems,
+  pageCount,
+  type Placement,
+  type PackOptions,
+} from "./packing";
 import { computeTargetPrintSize } from "./target-math";
 import {
   HEADER_RESERVE_IN,
@@ -63,7 +68,10 @@ export function layoutSession(session: Session): SessionLayout {
   const sizedById = new Map(sized.map((s) => [s.target.id, s]));
   const items: LaidOutTarget[] = placements.map((placement) => {
     const s = sizedById.get(placement.id);
-    if (!s) throw new Error(`No sized target found for placement id "${placement.id}"`);
+    if (!s)
+      throw new Error(
+        `No sized target found for placement id "${placement.id}"`,
+      );
     return {
       target: s.target,
       placement,

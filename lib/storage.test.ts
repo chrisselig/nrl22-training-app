@@ -1,5 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { clearSession, loadSession, loadSessionOrDefault, saveSession } from "./storage";
+import {
+  clearSession,
+  loadSession,
+  loadSessionOrDefault,
+  saveSession,
+} from "./storage";
 import type { Session } from "./types";
 
 class MemoryStorage {

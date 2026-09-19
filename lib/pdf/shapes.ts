@@ -1,5 +1,9 @@
 import { rgb, type PDFFont, type PDFPage } from "@cantoo/pdf-lib";
-import { CENTER_DOT_RADIUS_IN, PT_PER_IN, SHAPE_FONT_SIZE_PT } from "./constants";
+import {
+  CENTER_DOT_RADIUS_IN,
+  PT_PER_IN,
+  SHAPE_FONT_SIZE_PT,
+} from "./constants";
 import { formatLabel } from "../target-math";
 import type { LaidOutTarget } from "../target-layout";
 
@@ -22,7 +26,10 @@ interface ShapeGeometry {
  * is the one place that flip happens — every other geometry calculation
  * downstream works in plain PDF (bottom-up) points.
  */
-function shapeGeometryPt(item: LaidOutTarget, pageHeightPt: number): ShapeGeometry {
+function shapeGeometryPt(
+  item: LaidOutTarget,
+  pageHeightPt: number,
+): ShapeGeometry {
   const widthPt = item.shapeWidthIn * PT_PER_IN;
   const heightPt = item.shapeHeightIn * PT_PER_IN;
   const xPt = item.placement.xIn * PT_PER_IN;
@@ -57,7 +64,12 @@ function drawDiamond(page: PDFPage, geo: ShapeGeometry): void {
     [bottom, left],
     [left, top],
   ] as const) {
-    page.drawLine({ start, end, thickness: STROKE_WIDTH_PT, color: STROKE_COLOR });
+    page.drawLine({
+      start,
+      end,
+      thickness: STROKE_WIDTH_PT,
+      color: STROKE_COLOR,
+    });
   }
 }
 

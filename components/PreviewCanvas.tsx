@@ -53,7 +53,13 @@ function TargetSvg({ item }: { item: LaidOutTarget }) {
         />
       )}
       <circle cx={cx} cy={cy} r={2} fill="currentColor" />
-      <text x={cx} y={yPx + hPx + 11} textAnchor="middle" fontSize={9} fill="currentColor">
+      <text
+        x={cx}
+        y={yPx + hPx + 11}
+        textAnchor="middle"
+        fontSize={9}
+        fill="currentColor"
+      >
         {formatLabel(target)}
       </text>
     </g>
@@ -68,7 +74,10 @@ export function PreviewCanvas() {
     try {
       return { data: layoutSession(session), error: null };
     } catch (e) {
-      return { data: null, error: e instanceof Error ? e.message : "Could not lay out session." };
+      return {
+        data: null,
+        error: e instanceof Error ? e.message : "Could not lay out session.",
+      };
     }
   }, [session]);
 
@@ -88,7 +97,8 @@ export function PreviewCanvas() {
     );
   }
 
-  const { pageWidthIn, pageHeightIn, headerReserveIn, items, pageCount } = layout.data!;
+  const { pageWidthIn, pageHeightIn, headerReserveIn, items, pageCount } =
+    layout.data!;
   const pageWidthPx = pageWidthIn * PX_PER_IN;
   const pageHeightPx = pageHeightIn * PX_PER_IN;
 

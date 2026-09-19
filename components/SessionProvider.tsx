@@ -1,6 +1,12 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+} from "react";
 import { loadSession, saveSession } from "@/lib/storage";
 import { createEmptySession } from "@/lib/types";
 import type { Distance, PaperSize, Session, Target } from "@/lib/types";
@@ -53,14 +59,18 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const value: SessionContextValue = {
     session,
     hydrated,
-    addTarget: (target) => setSession((s) => ({ ...s, targets: [...s.targets, target] })),
+    addTarget: (target) =>
+      setSession((s) => ({ ...s, targets: [...s.targets, target] })),
     updateTarget: (id, target) =>
       setSession((s) => ({
         ...s,
         targets: s.targets.map((t) => (t.id === id ? target : t)),
       })),
     removeTarget: (id) =>
-      setSession((s) => ({ ...s, targets: s.targets.filter((t) => t.id !== id) })),
+      setSession((s) => ({
+        ...s,
+        targets: s.targets.filter((t) => t.id !== id),
+      })),
     duplicateTarget: (id) =>
       setSession((s) => {
         const idx = s.targets.findIndex((t) => t.id === id);
@@ -86,7 +96,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     resetSession: () => setSession(createEmptySession()),
   };
 
-  return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
+  return (
+    <SessionContext.Provider value={value}>{children}</SessionContext.Provider>
+  );
 }
 
 export function useSession(): SessionContextValue {

@@ -3,7 +3,10 @@ import type { PaperSize } from "../types";
 export const PT_PER_IN = 72;
 export const MM_PER_IN = 25.4;
 
-export const PAGE_SIZES_IN: Record<PaperSize, { widthIn: number; heightIn: number }> = {
+export const PAGE_SIZES_IN: Record<
+  PaperSize,
+  { widthIn: number; heightIn: number }
+> = {
   letter: { widthIn: 8.5, heightIn: 11 },
   a4: { widthIn: 210 / MM_PER_IN, heightIn: 297 / MM_PER_IN },
 };

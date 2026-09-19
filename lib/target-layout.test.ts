@@ -14,7 +14,11 @@ function circleTarget(id: string, mil: number, rangeYd: number): Target {
 
 describe("layoutSession", () => {
   it("returns no pages for an empty session", () => {
-    const session: Session = { schemaVersion: 1, paperSize: "letter", targets: [] };
+    const session: Session = {
+      schemaVersion: 1,
+      paperSize: "letter",
+      targets: [],
+    };
     const layout = layoutSession(session);
     expect(layout.items).toEqual([]);
     expect(layout.pageCount).toBe(0);
@@ -48,8 +52,14 @@ describe("layoutSession", () => {
   });
 
   it("packs many small targets onto a single page", () => {
-    const targets = Array.from({ length: 6 }, (_, i) => circleTarget(`t${i}`, 0.5, 25));
-    const layout = layoutSession({ schemaVersion: 1, paperSize: "letter", targets });
+    const targets = Array.from({ length: 6 }, (_, i) =>
+      circleTarget(`t${i}`, 0.5, 25),
+    );
+    const layout = layoutSession({
+      schemaVersion: 1,
+      paperSize: "letter",
+      targets,
+    });
     expect(layout.pageCount).toBe(1);
     expect(layout.items).toHaveLength(6);
   });
@@ -58,8 +68,14 @@ describe("layoutSession", () => {
     // 1.9 MIL @ 50yd = 3.42in shapes: 2 fit per row, 2 rows fit page 1 (4
     // targets), forcing the 5th/6th onto page 2. Large enough to force
     // wrapping but still well under the single-item OversizedItemError limit.
-    const targets = Array.from({ length: 6 }, (_, i) => circleTarget(`t${i}`, 1.9, 50));
-    const layout = layoutSession({ schemaVersion: 1, paperSize: "letter", targets });
+    const targets = Array.from({ length: 6 }, (_, i) =>
+      circleTarget(`t${i}`, 1.9, 50),
+    );
+    const layout = layoutSession({
+      schemaVersion: 1,
+      paperSize: "letter",
+      targets,
+    });
     expect(layout.pageCount).toBeGreaterThan(1);
   });
 
@@ -73,8 +89,16 @@ describe("layoutSession", () => {
   });
 
   it("uses A4 page dimensions when selected", () => {
-    const letter = layoutSession({ schemaVersion: 1, paperSize: "letter", targets: [] });
-    const a4 = layoutSession({ schemaVersion: 1, paperSize: "a4", targets: [] });
+    const letter = layoutSession({
+      schemaVersion: 1,
+      paperSize: "letter",
+      targets: [],
+    });
+    const a4 = layoutSession({
+      schemaVersion: 1,
+      paperSize: "a4",
+      targets: [],
+    });
     expect(a4.pageWidthIn).not.toBeCloseTo(letter.pageWidthIn, 2);
   });
 });

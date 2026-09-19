@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { OversizedItemError, packItems, pageCount, type PackItem, type PackOptions } from "./packing";
+import {
+  OversizedItemError,
+  packItems,
+  pageCount,
+  type PackItem,
+  type PackOptions,
+} from "./packing";
 
 const baseOpts: PackOptions = {
   pageWidthIn: 8.5,
@@ -10,7 +16,10 @@ const baseOpts: PackOptions = {
   rowGapIn: 0.25,
 };
 
-function rectsOverlap(a: PackItem & { xIn: number; yIn: number }, b: PackItem & { xIn: number; yIn: number }) {
+function rectsOverlap(
+  a: PackItem & { xIn: number; yIn: number },
+  b: PackItem & { xIn: number; yIn: number },
+) {
   const aRight = a.xIn + a.widthIn;
   const aBottom = a.yIn + a.heightIn;
   const bRight = b.xIn + b.widthIn;

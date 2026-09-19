@@ -46,10 +46,13 @@ export class OversizedItemError extends Error {
  */
 export function packItems(items: PackItem[], opts: PackOptions): Placement[] {
   const usableWidthIn = opts.pageWidthIn - 2 * opts.marginIn;
-  const usableHeightIn = opts.pageHeightIn - 2 * opts.marginIn - opts.headerReserveIn;
+  const usableHeightIn =
+    opts.pageHeightIn - 2 * opts.marginIn - opts.headerReserveIn;
 
   if (usableWidthIn <= 0 || usableHeightIn <= 0) {
-    throw new Error("Page margins and header reserve leave no usable printable area.");
+    throw new Error(
+      "Page margins and header reserve leave no usable printable area.",
+    );
   }
 
   for (const item of items) {

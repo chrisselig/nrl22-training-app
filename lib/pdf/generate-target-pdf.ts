@@ -31,7 +31,10 @@ export async function buildTargetPdf(session: Session): Promise<Uint8Array> {
 
     if (session.globalPracticeDistance) {
       const distanceText = `Practice Distance: ${session.globalPracticeDistance.value} ${session.globalPracticeDistance.unit}`;
-      const width = boldFont.widthOfTextAtSize(distanceText, HEADER_FONT_SIZE_PT);
+      const width = boldFont.widthOfTextAtSize(
+        distanceText,
+        HEADER_FONT_SIZE_PT,
+      );
       page.drawText(distanceText, {
         x: (pageWidthPt - width) / 2,
         y,

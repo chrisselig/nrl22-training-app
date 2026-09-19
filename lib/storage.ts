@@ -5,7 +5,11 @@ const STORAGE_KEY = "nrl22-target-session-v1";
 function isSession(value: unknown): value is Session {
   if (typeof value !== "object" || value === null) return false;
   const v = value as Record<string, unknown>;
-  return v.schemaVersion === 1 && Array.isArray(v.targets) && typeof v.paperSize === "string";
+  return (
+    v.schemaVersion === 1 &&
+    Array.isArray(v.targets) &&
+    typeof v.paperSize === "string"
+  );
 }
 
 /** SSR-safe: returns undefined on the server or when nothing valid is stored. */
