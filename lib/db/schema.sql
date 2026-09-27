@@ -86,11 +86,12 @@ create table if not exists cof_documents (
 );
 
 -- Heuristically parsed from COF PDF prose (see lib/nrl22-cof-client.ts) —
--- only stage_number/stage_name/is_timed/par_time_seconds are extracted
--- reliably. Prop/position/distance are left null for manual reconciliation:
--- a stage's title (e.g. "South Tower") does not reliably match the prop
--- actually used in its description (e.g. tank trap + sawhorse), so guessing
--- them from text would poison later analysis rather than help it.
+-- only stage_number/stage_name/is_timed/par_time_seconds/round_count are
+-- extracted reliably. Prop/position/distance are left null for manual
+-- reconciliation: a stage's title (e.g. "South Tower") does not reliably
+-- match the prop actually used in its description (e.g. tank trap +
+-- sawhorse), so guessing them from text would poison later analysis rather
+-- than help it.
 create table if not exists cof_stages (
   id serial primary key,
   cof_document_id integer not null references cof_documents(id) on delete cascade,
@@ -105,3 +106,19 @@ create table if not exists cof_stages (
   par_time_seconds numeric,
   raw_stage_text text
 );
+
+-- round_count: shots possible for the stage, parsed alongside par_time.
+-- image/image_mime: a full render of the stage's PDF page (not a hand-
+-- extracted embedded image — those are raw Flate-encoded pixel data with
+-- no container format, but the whole rendered page is trivial and robust
+-- across every COF designer's PDF), so the user can see the diagram
+-- without redownloading the source PDF.
+alter table cof_stages add column if not exists round_count integer;
+alter table cof_stages add column if not exists image bytea;
+alter table cof_stages add column if not exists image_mime text;
+
+-- Lets a match log entry point at the specific parsed COF stage it was shot
+-- against, so prop/position/round_count can prefill from cof_stages instead
+-- of being retyped, while prop_name_freeform/position stay overridable for
+-- stages that were logged before that month's COF was ever imported.
+alter table stage_logs add column if not exists cof_stage_id integer references cof_stages(id) on delete set null;

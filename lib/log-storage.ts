@@ -13,6 +13,7 @@ export interface StageLogEntry {
   shotsPossible: number | null;
   timeSeconds: number | null;
   comments: string | null;
+  cofStageId: number | null;
   synced: boolean;
 }
 
@@ -42,6 +43,9 @@ function isStageLogEntry(value: unknown): value is StageLogEntry {
     (v.shotsPossible === null || isNumber(v.shotsPossible)) &&
     (v.timeSeconds === null || isNumber(v.timeSeconds)) &&
     isNullOr(isString)(v.comments) &&
+    (v.cofStageId === undefined ||
+      v.cofStageId === null ||
+      isNumber(v.cofStageId)) &&
     typeof v.synced === "boolean"
   );
 }

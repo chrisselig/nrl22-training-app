@@ -1,11 +1,11 @@
 import Link from "next/link";
 
 const NAV_LINKS = [
-  { href: "/", label: "Target Printer" },
   { href: "/props", label: "Props & Strategy" },
   { href: "/log", label: "Match Log" },
   { href: "/results", label: "Results" },
   { href: "/cof", label: "Course of Fire" },
+  { href: "/", label: "Target Printer" },
 ];
 
 export function NavBar() {
