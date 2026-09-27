@@ -4,6 +4,7 @@ const NAV_LINKS = [
   { href: "/", label: "Target Printer" },
   { href: "/props", label: "Props & Strategy" },
   { href: "/log", label: "Match Log" },
+  { href: "/results", label: "Results" },
 ];
 
 export function NavBar() {

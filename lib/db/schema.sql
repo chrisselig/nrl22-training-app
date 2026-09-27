@@ -49,3 +49,27 @@ alter table stage_logs drop constraint if exists stage_logs_prop_id_fkey;
 alter table stage_logs
   add constraint stage_logs_prop_id_fkey
   foreign key (prop_id) references props(id) on delete set null;
+
+-- Mirrors the real nrl22.com REST API response shape
+-- (wp-json/nrl22/v1/match-results), discovered live rather than guessed.
+-- Unique key is the natural key of one shooter's result row for one match;
+-- re-scraping is a plain upsert, never a duplicate insert.
+create table if not exists results (
+  id serial primary key,
+  source text not null default 'nrl22',
+  match_date date not null,
+  season text,
+  match_type text,
+  club_name text,
+  shooter_name text,
+  class text,
+  division text,
+  shooter_id text,
+  raw_score numeric,
+  overall_finish integer,
+  division_finish integer,
+  class_finish integer,
+  leaderboard_points numeric,
+  scraped_at timestamptz not null default now(),
+  unique (source, match_date, match_type, shooter_id, division)
+);
