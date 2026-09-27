@@ -127,15 +127,20 @@ export interface ParsedCofStage {
   rawStageText: string;
 }
 
-// Anchors on "Time: <n> Sec Round Count: <m>" immediately followed by the
-// "<n>. <stage name>" heading line — the one sequence confirmed stable
-// across every stage in a real downloaded COF. Everything else about a
-// stage's prose (prop, position, distances) is too free-form to parse
-// reliably: a stage titled "South Tower" can turn out to use a tank trap
-// and sawhorse per its actual description, so those fields are left for
-// manual entry rather than guessed.
-const STAGE_ANCHOR =
-  /Time:\s*(\d+)\s*Sec\s+Round Count:\s*\d+\s*\n\s*(\d+)\.\s*([^\n]+)/g;
+// Anchors on "Time: <n> Sec Round Count: <m>" — the one line confirmed
+// stable across every stage in every archive month tried (2024-05 through
+// 2026-09). The "<n>. <stage name>" heading that follows isn't always the
+// very next line — older PDFs interpose a boilerplate line like "Ranges
+// and Targets:" first — so the heading is taken as the first "<n>. ..."
+// match within a bounded window after the anchor, rather than requiring
+// strict adjacency. Everything else about a stage's prose (prop, position,
+// distances) is too free-form to parse reliably: a stage titled "South
+// Tower" can turn out to use a tank trap and sawhorse per its actual
+// description, so those fields are left for manual entry rather than
+// guessed.
+const STAGE_TIME_ANCHOR = /Time:\s*(\d+)\s*Sec\s+Round Count:\s*\d+/g;
+const STAGE_HEADING = /(\d+)\.\s*([^\n]+)/;
+const HEADING_SEARCH_WINDOW = 250;
 
 export function parseCofStages(text: string): ParsedCofStage[] {
   const anchors: {
@@ -145,13 +150,18 @@ export function parseCofStages(text: string): ParsedCofStage[] {
     stageName: string;
   }[] = [];
   let m;
-  STAGE_ANCHOR.lastIndex = 0;
-  while ((m = STAGE_ANCHOR.exec(text))) {
+  STAGE_TIME_ANCHOR.lastIndex = 0;
+  while ((m = STAGE_TIME_ANCHOR.exec(text))) {
+    const afterAnchor = m.index + m[0].length;
+    const heading = STAGE_HEADING.exec(
+      text.slice(afterAnchor, afterAnchor + HEADING_SEARCH_WINDOW),
+    );
+    if (!heading) continue;
     anchors.push({
       index: m.index,
       timeSec: Number(m[1]),
-      stageNumber: Number(m[2]),
-      stageName: m[3].trim(),
+      stageNumber: Number(heading[1]),
+      stageName: heading[2].trim(),
     });
   }
 
