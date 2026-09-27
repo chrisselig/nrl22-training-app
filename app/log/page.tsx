@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { LoginForm } from "@/components/LoginForm";
 import {
   POSITION_IDS,
@@ -35,6 +35,23 @@ interface CofDocumentOption {
   id: number;
   month: string;
   stages: CofStageOption[];
+}
+
+interface ServerLogRow {
+  id: number;
+  match_date: string;
+  stage_name: string | null;
+  impacts: number | null;
+  shots_possible: number | null;
+}
+
+interface StageRollup {
+  stageName: string;
+  attempts: number;
+  avgImpacts: number | null;
+  avgShotsPossible: number | null;
+  hitRatePct: number | null;
+  lastDate: string;
 }
 
 const inputClass =
@@ -81,6 +98,7 @@ export default function LogPage() {
   const [cofDocuments, setCofDocuments] = useState<CofDocumentOption[]>([]);
   const [needsLogin, setNeedsLogin] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [serverLogs, setServerLogs] = useState<ServerLogRow[] | null>(null);
 
   const [matchDate, setMatchDate] = useState(todayIsoDate());
   const [matchName, setMatchName] = useState("");
@@ -132,7 +150,23 @@ export default function LogPage() {
       .then((res) => (res.ok ? res.json() : []))
       .then((data: CofDocumentOption[]) => setCofDocuments(data))
       .catch(() => setCofDocuments([]));
+
+    void refreshServerLogs();
   }, []);
+
+  async function refreshServerLogs() {
+    try {
+      const res = await fetch("/api/logs");
+      if (res.status === 401) {
+        setNeedsLogin(true);
+        setServerLogs([]);
+        return;
+      }
+      setServerLogs(res.ok ? await res.json() : []);
+    } catch {
+      setServerLogs([]);
+    }
+  }
 
   useEffect(() => {
     if (hydrated) saveStageLogs(entries);
@@ -168,6 +202,7 @@ export default function LogPage() {
     }
     if (hitAuthWall) setNeedsLogin(true);
     setSyncing(false);
+    void refreshServerLogs();
   }
 
   function resetForm() {
@@ -211,6 +246,53 @@ export default function LogPage() {
 
   const pendingCount = entries.filter((e) => !e.synced).length;
 
+  // Grouped by stage design, not prop — a stage's hit count often spans
+  // multiple props (e.g. a barricade *and* a barrel in one stage), so a
+  // single "impacts" total can't be attributed to one prop. Worst-first so
+  // the stages needing practice surface at the top.
+  const stageRollup = useMemo<StageRollup[]>(() => {
+    const groups = new Map<string, ServerLogRow[]>();
+    for (const row of serverLogs ?? []) {
+      const key = row.stage_name?.trim() || "Unnamed stage";
+      const list = groups.get(key) ?? [];
+      list.push(row);
+      groups.set(key, list);
+    }
+    const rollups = Array.from(groups.entries()).map(([stageName, rows]) => {
+      const withImpacts = rows.filter((r) => r.impacts !== null);
+      const withShots = rows.filter((r) => r.shots_possible !== null);
+      const avgImpacts = withImpacts.length
+        ? withImpacts.reduce((sum, r) => sum + (r.impacts ?? 0), 0) /
+          withImpacts.length
+        : null;
+      const avgShotsPossible = withShots.length
+        ? withShots.reduce((sum, r) => sum + (r.shots_possible ?? 0), 0) /
+          withShots.length
+        : null;
+      const hitRatePct =
+        avgImpacts !== null && avgShotsPossible
+          ? (avgImpacts / avgShotsPossible) * 100
+          : null;
+      const lastDate = rows.reduce(
+        (max, r) => (r.match_date > max ? r.match_date : max),
+        rows[0].match_date,
+      );
+      return {
+        stageName,
+        attempts: rows.length,
+        avgImpacts,
+        avgShotsPossible,
+        hitRatePct,
+        lastDate,
+      };
+    });
+    return rollups.sort((a, b) => {
+      const aScore = a.hitRatePct ?? a.avgImpacts ?? Infinity;
+      const bScore = b.hitRatePct ?? b.avgImpacts ?? Infinity;
+      return aScore - bScore;
+    });
+  }, [serverLogs]);
+
   return (
     <div className="mx-auto w-full max-w-2xl flex-1 space-y-6 p-4 lg:p-6">
       <header>
@@ -221,7 +303,14 @@ export default function LogPage() {
         </p>
       </header>
 
-      {needsLogin && <LoginForm onSuccess={() => void flushPending()} />}
+      {needsLogin && (
+        <LoginForm
+          onSuccess={() => {
+            void flushPending();
+            void refreshServerLogs();
+          }}
+        />
+      )}
 
       <div className="space-y-3 rounded-lg border border-neutral-200 bg-white p-3 dark:border-neutral-800 dark:bg-neutral-900">
         <div className="grid grid-cols-2 gap-2">
@@ -439,6 +528,49 @@ export default function LogPage() {
           Log stage
         </button>
       </div>
+
+      {stageRollup.length > 0 && (
+        <div className="space-y-2">
+          <h2 className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">
+            By stage
+          </h2>
+          <div className="overflow-x-auto rounded-lg border border-neutral-200 dark:border-neutral-800">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-neutral-100 dark:bg-neutral-800">
+                <tr>
+                  <th className="p-2">Stage</th>
+                  <th className="p-2">Attempts</th>
+                  <th className="p-2">Avg impacts</th>
+                  <th className="p-2">Hit rate</th>
+                  <th className="p-2">Last</th>
+                </tr>
+              </thead>
+              <tbody>
+                {stageRollup.map((row) => (
+                  <tr
+                    key={row.stageName}
+                    className="border-t border-neutral-200 dark:border-neutral-800"
+                  >
+                    <td className="p-2">{row.stageName}</td>
+                    <td className="p-2">{row.attempts}</td>
+                    <td className="p-2">
+                      {row.avgImpacts !== null
+                        ? row.avgImpacts.toFixed(1)
+                        : "—"}
+                    </td>
+                    <td className="p-2 font-semibold">
+                      {row.hitRatePct !== null
+                        ? `${row.hitRatePct.toFixed(0)}%`
+                        : "—"}
+                    </td>
+                    <td className="p-2">{row.lastDate.slice(0, 10)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">
