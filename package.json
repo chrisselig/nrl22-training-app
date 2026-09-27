@@ -10,13 +10,15 @@
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "migrate": "node --env-file=.env.local scripts/migrate.mjs"
   },
   "overrides": {
     "browserslist": "^4.29.0"
   },
   "dependencies": {
     "@cantoo/pdf-lib": "^2.11.1",
+    "@neondatabase/serverless": "^1.0.0",
     "@serwist/next": "^9.5.12",
     "next": "16.3.5",
     "react": "19.2.8",
