@@ -12,7 +12,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "migrate": "node --env-file=.env.local scripts/migrate.mjs",
-    "seed-props": "node --env-file=.env.local scripts/seed-props.mjs"
+    "seed-props": "node --env-file=.env.local scripts/seed-props.mjs",
+    "backfill-cof-archive": "node --experimental-strip-types --env-file=.env.local scripts/backfill-cof-archive.mjs"
   },
   "overrides": {
     "browserslist": "^4.29.0"
@@ -22,6 +23,7 @@
     "@neondatabase/serverless": "^1.0.0",
     "@serwist/next": "^9.5.12",
     "next": "16.3.5",
+    "pdf-parse": "^2.4.5",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "serwist": "^9.5.12"

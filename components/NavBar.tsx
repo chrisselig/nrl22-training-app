@@ -5,6 +5,7 @@ const NAV_LINKS = [
   { href: "/props", label: "Props & Strategy" },
   { href: "/log", label: "Match Log" },
   { href: "/results", label: "Results" },
+  { href: "/cof", label: "Course of Fire" },
 ];
 
 export function NavBar() {
