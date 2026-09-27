@@ -7,6 +7,11 @@ create table if not exists props (
   updated_at timestamptz not null default now()
 );
 
+-- Case-insensitive uniqueness so the standard-prop-list seed script can
+-- upsert safely (re-running it after a manually-added "Tank Trap" must not
+-- create a duplicate "tank trap" row).
+create unique index if not exists props_name_unique on props (lower(name));
+
 create table if not exists strategies (
   id serial primary key,
   prop_id integer not null references props(id) on delete cascade,
