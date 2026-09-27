@@ -53,7 +53,11 @@ try {
        returning id`,
       [prop.name, prop.category, prop.notes],
     );
-    console.log(result.rowCount ? `added: ${prop.name}` : `skipped (exists): ${prop.name}`);
+    console.log(
+      result.rowCount
+        ? `added: ${prop.name}`
+        : `skipped (exists): ${prop.name}`,
+    );
   }
 } finally {
   await pool.end();
