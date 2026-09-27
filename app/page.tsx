@@ -1,6 +1,6 @@
 "use client";
 
-import { SessionProvider, useSession } from "@/components/SessionProvider";
+import { useSession } from "@/components/SessionProvider";
 import { TargetForm } from "@/components/TargetForm";
 import { TargetList } from "@/components/TargetList";
 import { PageSettings } from "@/components/PageSettings";
@@ -74,9 +74,5 @@ function Builder() {
 }
 
 export default function Home() {
-  return (
-    <SessionProvider>
-      <Builder />
-    </SessionProvider>
-  );
+  return <Builder />;
 }
