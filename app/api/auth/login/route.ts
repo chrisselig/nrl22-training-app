@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
-import { AUTH_COOKIE_NAME, checkPassword, createSessionCookieValue } from "@/lib/auth";
+import {
+  AUTH_COOKIE_NAME,
+  checkPassword,
+  createSessionCookieValue,
+} from "@/lib/auth";
 
 export async function POST(request: Request) {
   let password: unknown;
@@ -7,7 +11,10 @@ export async function POST(request: Request) {
     const body = (await request.json()) as { password?: unknown };
     password = body.password;
   } catch {
-    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid request body" },
+      { status: 400 },
+    );
   }
 
   if (typeof password !== "string" || !checkPassword(password)) {

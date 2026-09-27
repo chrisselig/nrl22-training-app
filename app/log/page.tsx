@@ -2,7 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { LoginForm } from "@/components/LoginForm";
-import { POSITION_IDS, POSITION_LABELS, type PositionId } from "@/lib/positions";
+import {
+  POSITION_IDS,
+  POSITION_LABELS,
+  type PositionId,
+} from "@/lib/positions";
 import {
   loadStageLogs,
   saveStageLogs,

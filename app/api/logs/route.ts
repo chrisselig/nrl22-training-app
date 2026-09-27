@@ -46,15 +46,22 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
-  if (body.position !== undefined && body.position !== null && !isPositionId(body.position)) {
+  if (
+    body.position !== undefined &&
+    body.position !== null &&
+    !isPositionId(body.position)
+  ) {
     return NextResponse.json({ error: "invalid position" }, { status: 400 });
   }
 
   const matchName = typeof body.matchName === "string" ? body.matchName : null;
   const stageName = typeof body.stageName === "string" ? body.stageName : null;
-  const propId = Number.isInteger(Number(body.propId)) && body.propId !== undefined && body.propId !== null
-    ? Number(body.propId)
-    : null;
+  const propId =
+    Number.isInteger(Number(body.propId)) &&
+    body.propId !== undefined &&
+    body.propId !== null
+      ? Number(body.propId)
+      : null;
   const propNameFreeform =
     typeof body.propNameFreeform === "string" ? body.propNameFreeform : null;
   const position = isPositionId(body.position) ? body.position : null;

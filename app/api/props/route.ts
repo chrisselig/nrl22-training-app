@@ -40,7 +40,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "name is required" }, { status: 400 });
   }
   if (typeof body.category !== "string" || body.category.trim() === "") {
-    return NextResponse.json({ error: "category is required" }, { status: 400 });
+    return NextResponse.json(
+      { error: "category is required" },
+      { status: 400 },
+    );
   }
   const notes = typeof body.notes === "string" ? body.notes : null;
 

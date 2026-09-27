@@ -2,7 +2,11 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { LoginForm } from "@/components/LoginForm";
-import { POSITION_IDS, POSITION_LABELS, type PositionId } from "@/lib/positions";
+import {
+  POSITION_IDS,
+  POSITION_LABELS,
+  type PositionId,
+} from "@/lib/positions";
 
 interface StrategyRow {
   id: number;
@@ -90,7 +94,11 @@ export default function PropsPage() {
 
   async function handleAddProp(name: string, category: string, notes: string) {
     await withAuth(async () => {
-      await postJson("/api/props", { name, category, notes: notes || undefined });
+      await postJson("/api/props", {
+        name,
+        category,
+        notes: notes || undefined,
+      });
       await reload();
     });
   }
@@ -133,17 +141,15 @@ export default function PropsPage() {
       <header>
         <h1 className="text-xl font-semibold">Props & Strategy</h1>
         <p className="text-sm text-neutral-500 dark:text-neutral-400">
-          What to do when you see it again: bag, position, and how to lay it
-          on the prop.
+          What to do when you see it again: bag, position, and how to lay it on
+          the prop.
         </p>
       </header>
 
       {error && (
         <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
       )}
-      {needsLogin && (
-        <LoginForm onSuccess={() => setNeedsLogin(false)} />
-      )}
+      {needsLogin && <LoginForm onSuccess={() => setNeedsLogin(false)} />}
 
       <AddPropForm onAdd={handleAddProp} />
 
@@ -156,7 +162,7 @@ export default function PropsPage() {
       ) : (
         Array.from(grouped.entries()).map(([category, categoryProps]) => (
           <section key={category} className="space-y-3">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+            <h2 className="text-sm font-semibold tracking-wide text-neutral-500 uppercase dark:text-neutral-400">
               {category}
             </h2>
             {categoryProps.map((prop) => (
@@ -353,9 +359,7 @@ function StrategyRowView({
       onClick={onEdit}
       className="block w-full rounded-md border border-neutral-200 p-2 text-left text-xs hover:border-blue-400 dark:border-neutral-800"
     >
-      <span className="font-medium">
-        {POSITION_LABELS[strategy.position]}
-      </span>
+      <span className="font-medium">{POSITION_LABELS[strategy.position]}</span>
       {strategy.equipment && <span> — {strategy.equipment}</span>}
       {strategy.bag_placement && (
         <div className="text-neutral-500 dark:text-neutral-400">
