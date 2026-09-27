@@ -1,5 +1,14 @@
 import { Pool } from "@neondatabase/serverless";
-import { fetchCofPdfText, parseCofStages } from "../lib/nrl22-cof-client.ts";
+import {
+  fetchCofPdf,
+  parseCofStages,
+  renderCofPages,
+} from "../lib/nrl22-cof-client.ts";
+
+// Set to reprocess months already in cof_documents (e.g. after adding a new
+// parsed field) instead of skipping them — still re-hits nrl22.com for each,
+// so it's opt-in rather than the default.
+const FORCE = process.env.COF_BACKFILL_FORCE === "1";
 
 const databaseUrl =
   process.env.DATABASE_URL ?? process.env.nrl_training_DATABASE_URL;
@@ -41,13 +50,17 @@ try {
   const alreadyImported = new Set(existing.map((r) => r.month));
 
   for (const month of months) {
-    if (alreadyImported.has(month)) {
+    if (alreadyImported.has(month) && !FORCE) {
       console.log(`skipped (already imported): ${month}`);
       continue;
     }
 
     try {
-      const rawText = await fetchCofPdfText(username, password, month);
+      const { text: rawText, pdfBytes } = await fetchCofPdf(
+        username,
+        password,
+        month,
+      );
       const { rows } = await pool.query(
         `insert into cof_documents (month, source, raw_text)
          values ($1, 'nrl22', $2)
@@ -60,16 +73,23 @@ try {
         documentId,
       ]);
       const stages = parseCofStages(rawText);
+      const pageImages = await renderCofPages(pdfBytes, [
+        ...new Set(stages.map((s) => s.pageNumber)),
+      ]);
       for (const stage of stages) {
+        const image = pageImages.get(stage.pageNumber) ?? null;
         await pool.query(
-          `insert into cof_stages (cof_document_id, stage_number, stage_name, is_timed, par_time_seconds, raw_stage_text)
-           values ($1, $2, $3, $4, $5, $6)`,
+          `insert into cof_stages (cof_document_id, stage_number, stage_name, is_timed, par_time_seconds, round_count, image, image_mime, raw_stage_text)
+           values ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
           [
             documentId,
             stage.stageNumber,
             stage.stageName,
             stage.isTimed,
             stage.parTimeSeconds,
+            stage.roundCount,
+            image,
+            image ? "image/png" : null,
             stage.rawStageText,
           ],
         );

@@ -6,11 +6,12 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: path.resolve(__dirname),
   },
-  // pdf-parse (via pdfjs-dist) loads a worker script from a path that only
-  // exists in node_modules — bundling it rewrites that path and breaks at
-  // runtime. Leave it as a plain require instead of letting webpack/turbopack
-  // touch it.
-  serverExternalPackages: ["pdf-parse"],
+  // pdf-to-img and pdfjs-dist (used directly for text extraction) resolve
+  // pdfjs-dist's worker script, standard fonts, and cmaps from node_modules
+  // at runtime — bundling either rewrites those paths and breaks at runtime.
+  // Leave both as plain requires instead of letting webpack/turbopack touch
+  // them.
+  serverExternalPackages: ["pdf-to-img", "pdfjs-dist"],
 };
 
 const withSerwist = withSerwistInit({

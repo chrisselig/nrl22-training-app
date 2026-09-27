@@ -5,6 +5,7 @@ import { LoginForm } from "@/components/LoginForm";
 import {
   POSITION_IDS,
   POSITION_LABELS,
+  isPositionId,
   type PositionId,
 } from "@/lib/positions";
 import {
@@ -16,6 +17,24 @@ import {
 interface PropOption {
   id: number;
   name: string;
+}
+
+interface CofStageOption {
+  id: number;
+  stage_number: number | null;
+  stage_name: string | null;
+  prop_name_freeform: string | null;
+  position: string | null;
+  round_count: number | null;
+  is_timed: boolean;
+  par_time_seconds: string | null;
+  has_image: boolean;
+}
+
+interface CofDocumentOption {
+  id: number;
+  month: string;
+  stages: CofStageOption[];
 }
 
 const inputClass =
@@ -42,6 +61,7 @@ async function syncEntry(entry: StageLogEntry): Promise<StageLogEntry> {
       shotsPossible: entry.shotsPossible ?? undefined,
       timeSeconds: entry.timeSeconds ?? undefined,
       comments: entry.comments ?? undefined,
+      cofStageId: entry.cofStageId ?? undefined,
     }),
   });
   if (res.status === 401) {
@@ -58,11 +78,14 @@ export default function LogPage() {
   const [entries, setEntries] = useState<StageLogEntry[]>([]);
   const [hydrated, setHydrated] = useState(false);
   const [props, setProps] = useState<PropOption[]>([]);
+  const [cofDocuments, setCofDocuments] = useState<CofDocumentOption[]>([]);
   const [needsLogin, setNeedsLogin] = useState(false);
   const [syncing, setSyncing] = useState(false);
 
   const [matchDate, setMatchDate] = useState(todayIsoDate());
   const [matchName, setMatchName] = useState("");
+  const [cofMonth, setCofMonth] = useState("");
+  const [cofStageId, setCofStageId] = useState<number | null>(null);
   const [stageName, setStageName] = useState("");
   const [propName, setPropName] = useState("");
   const [position, setPosition] = useState<PositionId | null>(null);
@@ -71,6 +94,25 @@ export default function LogPage() {
   const [timed, setTimed] = useState(false);
   const [timeSeconds, setTimeSeconds] = useState("");
   const [comments, setComments] = useState("");
+
+  const stagesForMonth =
+    cofDocuments.find((d) => d.month === cofMonth)?.stages ?? [];
+  const selectedStage = stagesForMonth.find((s) => s.id === cofStageId);
+
+  function applyCofStage(stage: CofStageOption | undefined) {
+    setCofStageId(stage?.id ?? null);
+    if (!stage) return;
+    setStageName(
+      stage.stage_number
+        ? `${stage.stage_number}. ${stage.stage_name}`
+        : (stage.stage_name ?? ""),
+    );
+    setPropName(stage.prop_name_freeform ?? "");
+    setPosition(isPositionId(stage.position) ? stage.position : null);
+    setShotsPossible(stage.round_count ? String(stage.round_count) : "");
+    setTimed(stage.is_timed);
+    setTimeSeconds(stage.par_time_seconds ?? "");
+  }
 
   useEffect(() => {
     // Mount-time hydration from localStorage — browser-only store, not
@@ -85,6 +127,11 @@ export default function LogPage() {
         setProps(data.map((p) => ({ id: p.id, name: p.name }))),
       )
       .catch(() => setProps([]));
+
+    fetch("/api/cof")
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data: CofDocumentOption[]) => setCofDocuments(data))
+      .catch(() => setCofDocuments([]));
   }, []);
 
   useEffect(() => {
@@ -124,6 +171,7 @@ export default function LogPage() {
   }
 
   function resetForm() {
+    setCofStageId(null);
     setStageName("");
     setPropName("");
     setPosition(null);
@@ -152,6 +200,7 @@ export default function LogPage() {
       shotsPossible: shotsPossible ? Number(shotsPossible) : null,
       timeSeconds: timed && timeSeconds ? Number(timeSeconds) : null,
       comments: comments.trim() || null,
+      cofStageId,
       synced: false,
     };
 
@@ -201,6 +250,63 @@ export default function LogPage() {
             />
           </div>
         </div>
+
+        {cofDocuments.length > 0 && (
+          <div className="grid grid-cols-2 gap-2 rounded-md border border-dashed border-neutral-300 p-2 dark:border-neutral-700">
+            <div>
+              <label className={labelClass} htmlFor="cofMonth">
+                From Course of Fire
+              </label>
+              <select
+                id="cofMonth"
+                className={inputClass}
+                value={cofMonth}
+                onChange={(e) => {
+                  setCofMonth(e.target.value);
+                  applyCofStage(undefined);
+                }}
+              >
+                <option value="">— pick a month —</option>
+                {cofDocuments.map((doc) => (
+                  <option key={doc.id} value={doc.month}>
+                    {doc.month}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className={labelClass} htmlFor="cofStage">
+                Stage
+              </label>
+              <select
+                id="cofStage"
+                className={inputClass}
+                value={cofStageId ?? ""}
+                onChange={(e) =>
+                  applyCofStage(
+                    stagesForMonth.find((s) => s.id === Number(e.target.value)),
+                  )
+                }
+                disabled={!cofMonth}
+              >
+                <option value="">— pick a stage —</option>
+                {stagesForMonth.map((stage) => (
+                  <option key={stage.id} value={stage.id}>
+                    {stage.stage_number}. {stage.stage_name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {selectedStage?.has_image && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={`/api/cof/stages/${selectedStage.id}/image`}
+                alt={`Stage ${selectedStage.stage_number} diagram`}
+                className="col-span-2 w-full rounded-md border border-neutral-200 dark:border-neutral-800"
+              />
+            )}
+          </div>
+        )}
 
         <div>
           <label className={labelClass} htmlFor="stageName">

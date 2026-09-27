@@ -15,6 +15,8 @@ interface CofStage {
   target_description: string | null;
   is_timed: boolean;
   par_time_seconds: string | null;
+  round_count: number | null;
+  has_image: boolean;
   raw_stage_text: string | null;
 }
 
@@ -229,6 +231,7 @@ export default function CofPage() {
                         {stage.is_timed && stage.par_time_seconds
                           ? ` — ${stage.par_time_seconds}s`
                           : ""}
+                        {stage.round_count ? ` · ${stage.round_count} rds` : ""}
                       </span>
                       <button
                         type="button"
@@ -243,9 +246,19 @@ export default function CofPage() {
                       </button>
                     </div>
                     {expandedStage === stage.id && (
-                      <pre className="max-h-48 overflow-y-auto rounded-md bg-neutral-100 p-2 text-xs whitespace-pre-wrap dark:bg-neutral-800">
-                        {stage.raw_stage_text}
-                      </pre>
+                      <>
+                        {stage.has_image && (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={`/api/cof/stages/${stage.id}/image`}
+                            alt={`Stage ${stage.stage_number} diagram`}
+                            className="w-full rounded-md border border-neutral-200 dark:border-neutral-800"
+                          />
+                        )}
+                        <pre className="max-h-48 overflow-y-auto rounded-md bg-neutral-100 p-2 text-xs whitespace-pre-wrap dark:bg-neutral-800">
+                          {stage.raw_stage_text}
+                        </pre>
+                      </>
                     )}
                     <div className="grid grid-cols-2 gap-2">
                       <div>

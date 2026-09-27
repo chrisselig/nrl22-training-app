@@ -9,7 +9,7 @@ export async function GET(request: Request) {
     ? await sql`
         select id, match_date, match_name, stage_name, prop_id,
                prop_name_freeform, position, impacts, shots_possible,
-               time_seconds, comments, created_at
+               time_seconds, comments, cof_stage_id, created_at
         from stage_logs
         where match_date = ${matchDate}
         order by created_at desc
@@ -17,7 +17,7 @@ export async function GET(request: Request) {
     : await sql`
         select id, match_date, match_name, stage_name, prop_id,
                prop_name_freeform, position, impacts, shots_possible,
-               time_seconds, comments, created_at
+               time_seconds, comments, cof_stage_id, created_at
         from stage_logs
         order by created_at desc
         limit 200
@@ -38,6 +38,7 @@ export async function POST(request: Request) {
     shotsPossible?: unknown;
     timeSeconds?: unknown;
     comments?: unknown;
+    cofStageId?: unknown;
   };
 
   if (typeof body.matchDate !== "string" || body.matchDate.trim() === "") {
@@ -71,19 +72,23 @@ export async function POST(request: Request) {
   const timeSeconds =
     typeof body.timeSeconds === "number" ? body.timeSeconds : null;
   const comments = typeof body.comments === "string" ? body.comments : null;
+  const cofStageId =
+    typeof body.cofStageId === "number" && Number.isInteger(body.cofStageId)
+      ? body.cofStageId
+      : null;
 
   const [log] = await sql`
     insert into stage_logs (
       match_date, match_name, stage_name, prop_id, prop_name_freeform,
-      position, impacts, shots_possible, time_seconds, comments
+      position, impacts, shots_possible, time_seconds, comments, cof_stage_id
     )
     values (
       ${body.matchDate}, ${matchName}, ${stageName}, ${propId}, ${propNameFreeform},
-      ${position}, ${impacts}, ${shotsPossible}, ${timeSeconds}, ${comments}
+      ${position}, ${impacts}, ${shotsPossible}, ${timeSeconds}, ${comments}, ${cofStageId}
     )
     returning id, match_date, match_name, stage_name, prop_id,
               prop_name_freeform, position, impacts, shots_possible,
-              time_seconds, comments, created_at
+              time_seconds, comments, cof_stage_id, created_at
   `;
 
   return NextResponse.json(log, { status: 201 });

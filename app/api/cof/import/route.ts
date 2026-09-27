@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { fetchCofPdfText } from "@/lib/nrl22-cof-client";
+import { fetchCofPdf } from "@/lib/nrl22-cof-client";
 import { saveCofDocument } from "@/lib/cof-storage";
 
 const MONTH_RE = /^\d{4}-\d{2}$/;
@@ -23,8 +23,13 @@ export async function POST(request: Request) {
   }
 
   let rawText: string;
+  let pdfBytes: Buffer;
   try {
-    rawText = await fetchCofPdfText(username, password, body.month);
+    ({ text: rawText, pdfBytes } = await fetchCofPdf(
+      username,
+      password,
+      body.month,
+    ));
   } catch (e) {
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "COF import failed" },
@@ -32,6 +37,6 @@ export async function POST(request: Request) {
     );
   }
 
-  const result = await saveCofDocument(body.month, "nrl22", rawText);
+  const result = await saveCofDocument(body.month, "nrl22", rawText, pdfBytes);
   return NextResponse.json(result);
 }

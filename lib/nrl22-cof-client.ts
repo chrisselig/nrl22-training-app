@@ -1,5 +1,3 @@
-import { PDFParse } from "pdf-parse";
-
 const BASE_URL = "https://nrl22.com";
 
 /** Manual cookie jar + manual redirect following — Node's fetch has neither. */
@@ -99,11 +97,51 @@ class Nrl22Session {
   }
 }
 
-export async function fetchCofPdfText(
+export interface FetchedCof {
+  text: string;
+  pdfBytes: Buffer;
+}
+
+/**
+ * Extracts text via pdfjs-dist directly rather than the `pdf-parse` package.
+ * pdf-parse bundles its own (older) pdfjs-dist version; loading it in the
+ * same process as `pdf-to-img` (used below for page images) makes pdfjs-dist's
+ * Node "fake worker" self-registration collide across the two versions and
+ * throw "API version does not match Worker version" — reproducible even
+ * outside Next, in plain Node. Using the single pdfjs-dist copy pdf-to-img
+ * itself depends on avoids the clash entirely. Markers matching pdf-parse's
+ * own "-- N of M --" convention are inserted between pages so the existing
+ * PAGE_MARKER-based parsing below needs no changes.
+ */
+async function extractPdfText(pdfBytes: Buffer): Promise<string> {
+  const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs");
+  const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(pdfBytes) });
+  const doc = await loadingTask.promise;
+  const pageTexts: string[] = [];
+  for (let i = 1; i <= doc.numPages; i++) {
+    const page = await doc.getPage(i);
+    const content = await page.getTextContent();
+    let text = "";
+    for (const item of content.items) {
+      if (!("str" in item)) continue;
+      text += item.str;
+      if (item.hasEOL) text += "\n";
+    }
+    pageTexts.push(text);
+  }
+  await loadingTask.destroy();
+  return pageTexts
+    .map((text, i) =>
+      i === 0 ? text : `\n\n-- ${i + 1} of ${pageTexts.length} --\n\n${text}`,
+    )
+    .join("");
+}
+
+export async function fetchCofPdf(
   username: string,
   password: string,
   month: string,
-): Promise<string> {
+): Promise<FetchedCof> {
   const session = new Nrl22Session();
   await session.login(username, password);
   const nonces = await session.listDownloadNonces();
@@ -113,10 +151,35 @@ export async function fetchCofPdfText(
       `${month} is not available in the nrl22.com downloads archive`,
     );
   }
-  const pdfBuffer = await session.downloadCofPdf(month, nonce);
-  const parser = new PDFParse({ data: pdfBuffer });
-  const result = await parser.getText();
-  return result.text;
+  const pdfBytes = await session.downloadCofPdf(month, nonce);
+  const text = await extractPdfText(pdfBytes);
+  return { text, pdfBytes };
+}
+
+/**
+ * Renders whole PDF pages (1-indexed, matching pdf-parse's own "-- N of M --"
+ * markers) to PNG. Rendering the full page rather than hand-extracting the
+ * stage's embedded image: those embedded images are raw Flate-encoded pixel
+ * data with no container format (not plain JPEGs), so reconstructing a valid
+ * standalone image from them means correctly handling whatever colorspace/
+ * bit-depth each COF designer's PDF happens to use. A full-page render sidesteps
+ * that entirely and is what the user actually wants to see anyway.
+ */
+export async function renderCofPages(
+  pdfBytes: Buffer,
+  pageNumbers: number[],
+): Promise<Map<number, Buffer>> {
+  const { pdf } = await import("pdf-to-img");
+  const wanted = new Set(pageNumbers);
+  const doc = await pdf(pdfBytes, { scale: 2 });
+  const result = new Map<number, Buffer>();
+  let i = 0;
+  for await (const page of doc) {
+    i++;
+    if (wanted.has(i)) result.set(i, page as Buffer);
+    if (result.size === wanted.size) break;
+  }
+  return result;
 }
 
 export interface ParsedCofStage {
@@ -124,6 +187,8 @@ export interface ParsedCofStage {
   stageName: string;
   isTimed: boolean;
   parTimeSeconds: number;
+  roundCount: number | null;
+  pageNumber: number;
   rawStageText: string;
 }
 
@@ -138,14 +203,31 @@ export interface ParsedCofStage {
 // Tower" can turn out to use a tank trap and sawhorse per its actual
 // description, so those fields are left for manual entry rather than
 // guessed.
-const STAGE_TIME_ANCHOR = /Time:\s*(\d+)\s*Sec\s+Round Count:\s*\d+/g;
+const STAGE_TIME_ANCHOR = /Time:\s*(\d+)\s*Sec\s+Round Count:\s*(\d+)/g;
 const STAGE_HEADING = /(\d+)\.\s*([^\n]+)/;
 const HEADING_SEARCH_WINDOW = 250;
+// pdf-parse emits one of these between every page's extracted text, in order.
+const PAGE_MARKER = /-- (\d+) of \d+ --/g;
+
+// A "-- N of M --" marker sits at the *start* of page N's text, so the page
+// an anchor belongs to is the last marker at or before it, not the next one.
+function pageNumberForIndex(
+  markers: { index: number; pageNumber: number }[],
+  textIndex: number,
+): number {
+  let pageNumber = 1;
+  for (const marker of markers) {
+    if (marker.index > textIndex) break;
+    pageNumber = marker.pageNumber;
+  }
+  return pageNumber;
+}
 
 export function parseCofStages(text: string): ParsedCofStage[] {
   const anchors: {
     index: number;
     timeSec: number;
+    roundCount: number;
     stageNumber: number;
     stageName: string;
   }[] = [];
@@ -160,9 +242,17 @@ export function parseCofStages(text: string): ParsedCofStage[] {
     anchors.push({
       index: m.index,
       timeSec: Number(m[1]),
+      roundCount: Number(m[2]),
       stageNumber: Number(heading[1]),
       stageName: heading[2].trim(),
     });
+  }
+
+  const markers: { index: number; pageNumber: number }[] = [];
+  PAGE_MARKER.lastIndex = 0;
+  let pm;
+  while ((pm = PAGE_MARKER.exec(text))) {
+    markers.push({ index: pm.index, pageNumber: Number(pm[1]) });
   }
 
   return anchors.map((anchor, i) => ({
@@ -170,6 +260,8 @@ export function parseCofStages(text: string): ParsedCofStage[] {
     stageName: anchor.stageName,
     isTimed: true,
     parTimeSeconds: anchor.timeSec,
+    roundCount: anchor.roundCount,
+    pageNumber: pageNumberForIndex(markers, anchor.index),
     rawStageText: text
       .slice(anchor.index, anchors[i + 1]?.index ?? text.length)
       .trim(),
