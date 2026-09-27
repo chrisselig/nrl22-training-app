@@ -73,3 +73,35 @@ create table if not exists results (
   scraped_at timestamptz not null default now(),
   unique (source, match_date, match_type, shooter_id, division)
 );
+
+-- raw_text is kept unconditionally (even when stage parsing fails or is
+-- incomplete) so a month can always be re-parsed later without re-fetching.
+create table if not exists cof_documents (
+  id serial primary key,
+  month text not null,
+  source text not null default 'nrl22',
+  raw_text text,
+  imported_at timestamptz not null default now(),
+  unique (month, source)
+);
+
+-- Heuristically parsed from COF PDF prose (see lib/nrl22-cof-client.ts) —
+-- only stage_number/stage_name/is_timed/par_time_seconds are extracted
+-- reliably. Prop/position/distance are left null for manual reconciliation:
+-- a stage's title (e.g. "South Tower") does not reliably match the prop
+-- actually used in its description (e.g. tank trap + sawhorse), so guessing
+-- them from text would poison later analysis rather than help it.
+create table if not exists cof_stages (
+  id serial primary key,
+  cof_document_id integer not null references cof_documents(id) on delete cascade,
+  stage_number integer,
+  stage_name text,
+  distance_yd numeric,
+  prop_id integer references props(id) on delete set null,
+  prop_name_freeform text,
+  position text,
+  target_description text,
+  is_timed boolean not null default false,
+  par_time_seconds numeric,
+  raw_stage_text text
+);

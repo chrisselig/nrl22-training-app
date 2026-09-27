@@ -32,5 +32,6 @@ export const config = {
     "/api/strategies/:path*",
     "/api/logs/:path*",
     "/api/results/:path*",
+    "/api/cof/:path*",
   ],
 };
