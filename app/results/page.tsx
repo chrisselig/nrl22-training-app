@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { LoginForm } from "@/components/LoginForm";
 import { PageHeader } from "@/components/PageHeader";
@@ -196,6 +196,7 @@ export default function ResultsPage() {
   const [shooterName, setShooterName] = useState("");
   const [fetching, setFetching] = useState(false);
   const [lastFetchMsg, setLastFetchMsg] = useState<string | null>(null);
+  const retryRef = useRef<() => void>(() => {});
 
   async function reload() {
     setError(null);
@@ -250,12 +251,32 @@ export default function ResultsPage() {
       await reload();
     } catch (e) {
       if (e instanceof AuthRequiredError) {
+        retryRef.current = () => void handleFetchLatest();
         setNeedsLogin(true);
       } else {
         setError(e instanceof Error ? e.message : "Fetch failed");
       }
     } finally {
       setFetching(false);
+    }
+  }
+
+  async function handleDelete(id: number) {
+    if (!confirm("Remove this match result?")) return;
+    setError(null);
+    try {
+      const res = await fetch(`/api/results/${id}`, { method: "DELETE" });
+      if (res.status === 401) throw new AuthRequiredError();
+      if (!res.ok) throw new Error("Delete failed");
+      setNeedsLogin(false);
+      await reload();
+    } catch (e) {
+      if (e instanceof AuthRequiredError) {
+        retryRef.current = () => void handleDelete(id);
+        setNeedsLogin(true);
+      } else {
+        setError(e instanceof Error ? e.message : "Delete failed");
+      }
     }
   }
 
@@ -301,7 +322,14 @@ export default function ResultsPage() {
       {error && (
         <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
       )}
-      {needsLogin && <LoginForm onSuccess={() => void handleFetchLatest()} />}
+      {needsLogin && (
+        <LoginForm
+          onSuccess={() => {
+            setNeedsLogin(false);
+            retryRef.current();
+          }}
+        />
+      )}
 
       {narrative && (
         <p className="rounded-lg border-l-4 border-blue-600 bg-blue-50 p-3 text-sm leading-relaxed text-neutral-800 dark:bg-blue-950/30 dark:text-neutral-100">
@@ -384,9 +412,16 @@ export default function ResultsPage() {
                 >
                   {formatDate(r.match_date)}
                 </Link>
-                <span className="text-xs text-neutral-500 dark:text-neutral-400">
+                <span className="flex items-center gap-2 text-xs text-neutral-500 dark:text-neutral-400">
                   {r.club_name ?? "—"}
                   {r.match_type ? ` · ${r.match_type}` : ""}
+                  <button
+                    type="button"
+                    onClick={() => void handleDelete(r.id)}
+                    className="text-neutral-400 hover:text-red-600 dark:text-neutral-500 dark:hover:text-red-400"
+                  >
+                    Remove
+                  </button>
                 </span>
               </div>
               <div className="flex flex-wrap gap-1.5 text-xs">
