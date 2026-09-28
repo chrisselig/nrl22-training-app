@@ -277,21 +277,19 @@ export default function CofPage() {
                           {isExpanded ? "Hide" : "Show"} full text
                         </button>
                       </div>
-                      {isExpanded && (
-                        <>
-                          {stage.has_image && (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={`/api/cof/stages/${stage.id}/image`}
-                              alt={`Stage ${stage.stage_number} diagram`}
-                              className="w-full rounded-md border border-neutral-200 dark:border-neutral-800"
-                            />
-                          )}
+                      {isExpanded &&
+                        (stage.has_image ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={`/api/cof/stages/${stage.id}/image`}
+                            alt={`Stage ${stage.stage_number} diagram`}
+                            className="w-full rounded-md border border-neutral-200 dark:border-neutral-800"
+                          />
+                        ) : (
                           <pre className="max-h-48 overflow-y-auto rounded-md bg-neutral-100 p-2 text-xs whitespace-pre-wrap dark:bg-neutral-800">
                             {stage.raw_stage_text}
                           </pre>
-                        </>
-                      )}
+                        ))}
                       <div className="grid grid-cols-2 gap-2">
                         <div>
                           <label className={labelClass}>Prop</label>
