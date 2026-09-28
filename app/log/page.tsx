@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { LoginForm } from "@/components/LoginForm";
+import { PageHeader } from "@/components/PageHeader";
 import {
   POSITION_IDS,
   POSITION_LABELS,
@@ -326,13 +327,9 @@ export default function LogPage() {
 
   return (
     <div className="mx-auto w-full max-w-2xl flex-1 space-y-6 p-4 lg:p-6">
-      <header>
-        <h1 className="text-xl font-semibold">Match Log</h1>
-        <p className="text-sm text-neutral-500 dark:text-neutral-400">
-          Quick per-stage capture. Saves locally first — safe on bad range
-          signal.
-        </p>
-      </header>
+      <PageHeader eyebrow="Live capture" title="Match Log">
+        Quick per-stage capture. Saves locally first — safe on bad range signal.
+      </PageHeader>
 
       {needsLogin && (
         <LoginForm

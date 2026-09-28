@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { LoginForm } from "@/components/LoginForm";
+import { PageHeader } from "@/components/PageHeader";
 
 interface CofStage {
   id: number;
@@ -160,16 +161,13 @@ export default function CofPage() {
 
   return (
     <div className="mx-auto w-full max-w-3xl flex-1 space-y-6 p-4 lg:p-6">
-      <header>
-        <h1 className="text-xl font-semibold">Course of Fire Archive</h1>
-        <p className="text-sm text-neutral-500 dark:text-neutral-400">
-          Import nrl22.com&apos;s monthly COF. Stage number/name/time are parsed
-          automatically; prop, position, and distance are yours to fill in per
-          stage — the COF&apos;s prose isn&apos;t reliable enough to guess those
-          from (a stage titled &quot;South Tower&quot; can turn out to use a
-          tank trap).
-        </p>
-      </header>
+      <PageHeader eyebrow="Archive" title="Course of Fire">
+        Import nrl22.com&apos;s monthly COF. Stage number/name/time are parsed
+        automatically; prop, position, and distance are yours to fill in per
+        stage — the COF&apos;s prose isn&apos;t reliable enough to guess those
+        from (a stage titled &quot;South Tower&quot; can turn out to use a tank
+        trap).
+      </PageHeader>
 
       {error && (
         <p className="text-sm text-red-600 dark:text-red-400">{error}</p>

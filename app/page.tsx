@@ -6,6 +6,7 @@ import { TargetList } from "@/components/TargetList";
 import { PageSettings } from "@/components/PageSettings";
 import { PreviewCanvas } from "@/components/PreviewCanvas";
 import { ExportButton } from "@/components/ExportButton";
+import { PageHeader } from "@/components/PageHeader";
 
 function Builder() {
   const { session, addTarget, resetSession, hydrated } = useSession();
@@ -21,13 +22,10 @@ function Builder() {
   return (
     <div className="mx-auto grid w-full max-w-6xl flex-1 grid-cols-1 gap-6 p-4 lg:grid-cols-[minmax(0,420px)_1fr] lg:p-6">
       <div className="space-y-4">
-        <header>
-          <h1 className="text-xl font-semibold">NRL22 Target Printer</h1>
-          <p className="text-sm text-neutral-500 dark:text-neutral-400">
-            Build a course of fire, then export an exact-scale PDF to print on
-            graph paper.
-          </p>
-        </header>
+        <PageHeader eyebrow="Practice" title="Target Printer">
+          Build a course of fire, then export an exact-scale PDF to print on
+          graph paper.
+        </PageHeader>
 
         <PageSettings />
 
