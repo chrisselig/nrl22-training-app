@@ -205,9 +205,7 @@ export default function ResultsPage() {
   const [shooterName, setShooterName] = useState("");
   const [fetching, setFetching] = useState(false);
   const [lastFetchMsg, setLastFetchMsg] = useState<string | null>(null);
-  const [clubRanks, setClubRanks] = useState<Record<number, ClubRankEntry>>(
-    {},
-  );
+  const [clubRanks, setClubRanks] = useState<Record<number, ClubRankEntry>>({});
   const [clubRankLoading, setClubRankLoading] = useState(false);
   const retryRef = useRef<() => void>(() => {});
 
@@ -494,8 +492,8 @@ export default function ResultsPage() {
             Home club standing
           </h2>
           <p className="text-xs text-neutral-500 dark:text-neutral-400">
-            How you rank against everyone else who shot the same match at
-            your home club, pulled live from nrl22.com (not stored).
+            How you rank against everyone else who shot the same match at your
+            home club, pulled live from nrl22.com (not stored).
           </p>
           {clubRankLoading && Object.keys(clubRanks).length === 0 ? (
             <p className="text-sm text-neutral-500">Computing…</p>
@@ -506,7 +504,9 @@ export default function ResultsPage() {
                 if (!cr?.overall) return null;
                 return (
                   <p key={r.id} className="text-sm">
-                    <span className="font-medium">{formatDate(r.match_date)}</span>
+                    <span className="font-medium">
+                      {formatDate(r.match_date)}
+                    </span>
                     {": "}
                     {ordinal(cr.overall.rank)} of {cr.overall.of} at{" "}
                     {cr.clubName}

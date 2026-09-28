@@ -427,8 +427,7 @@ export default function CofPage() {
                               const typed = e.target.value.trim();
                               const matched = props.find(
                                 (p) =>
-                                  p.name.toLowerCase() ===
-                                  typed.toLowerCase(),
+                                  p.name.toLowerCase() === typed.toLowerCase(),
                               );
                               void updateStage(stage.id, {
                                 ...stageBase(stage),
@@ -450,8 +449,7 @@ export default function CofPage() {
                                 onClick={() =>
                                   void updateStage(stage.id, {
                                     ...stageBase(stage),
-                                    position:
-                                      stage.position === p ? null : p,
+                                    position: stage.position === p ? null : p,
                                   })
                                 }
                                 className={`rounded-md border px-2 py-1 text-xs ${
