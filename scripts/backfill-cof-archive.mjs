@@ -1,6 +1,7 @@
 import { Pool } from "@neondatabase/serverless";
 import {
   fetchCofPdf,
+  listAvailableMonths,
   parseCofStages,
   renderCofPages,
 } from "../lib/nrl22-cof-client.ts";
@@ -21,26 +22,11 @@ if (!databaseUrl || !username || !password) {
   process.exit(1);
 }
 
-// nrl22.com's public downloads archive starts here (per its own listing).
-const ARCHIVE_START = "2024-05";
-
-function monthRange(start, end) {
-  const months = [];
-  let [y, m] = start.split("-").map(Number);
-  const [endY, endM] = end.split("-").map(Number);
-  while (y < endY || (y === endY && m <= endM)) {
-    months.push(`${y}-${String(m).padStart(2, "0")}`);
-    m++;
-    if (m > 12) {
-      m = 1;
-      y++;
-    }
-  }
-  return months;
-}
-
-const currentMonth = new Date().toISOString().slice(0, 7);
-const months = monthRange(ARCHIVE_START, currentMonth);
+// Ask nrl22.com's own downloads listing which months exist, rather than
+// computing a range up to "today" — NRL22 sometimes publishes next month's
+// COF before the calendar turns over (e.g. Oct 2026 went up in Sept 2026),
+// so a wall-clock-bounded range silently misses it.
+const months = await listAvailableMonths(username, password);
 
 const pool = new Pool({ connectionString: databaseUrl });
 try {
