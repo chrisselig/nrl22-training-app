@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { LoginForm } from "@/components/LoginForm";
 
 interface CofStage {
@@ -47,7 +47,17 @@ export default function CofPage() {
   const [pastedText, setPastedText] = useState("");
   const [showPaste, setShowPaste] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [expandedStage, setExpandedStage] = useState<number | null>(null);
+  const [toggledStages, setToggledStages] = useState<Set<number>>(new Set());
+  const [focusMonth, setFocusMonth] = useState<string | null>(null);
+
+  function toggleStage(stageId: number) {
+    setToggledStages((prev) => {
+      const next = new Set(prev);
+      if (next.has(stageId)) next.delete(stageId);
+      else next.add(stageId);
+      return next;
+    });
+  }
   const retryRef = useRef<() => void>(() => {});
 
   async function reload() {
@@ -64,7 +74,24 @@ export default function CofPage() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     reload();
+    const m = new URLSearchParams(window.location.search).get("month");
+    if (m) {
+      setMonth(m);
+      setFocusMonth(m);
+    }
   }, []);
+
+  const baseExpandedStages = useMemo(() => {
+    const doc = documents?.find((d) => d.month === focusMonth);
+    return new Set(doc?.stages.map((s) => s.id) ?? []);
+  }, [focusMonth, documents]);
+
+  useEffect(() => {
+    if (!focusMonth || !documents) return;
+    document
+      .getElementById(`cof-${focusMonth}`)
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [focusMonth, documents]);
 
   async function runImport(
     path: string,
@@ -217,104 +244,112 @@ export default function CofPage() {
           {documents.map((doc) => (
             <div
               key={doc.id}
-              className="rounded-lg border border-neutral-200 dark:border-neutral-800"
+              id={`cof-${doc.month}`}
+              className={`rounded-lg border ${
+                focusMonth === doc.month
+                  ? "border-blue-500 ring-2 ring-blue-500"
+                  : "border-neutral-200 dark:border-neutral-800"
+              }`}
             >
               <div className="border-b border-neutral-200 bg-neutral-100 p-2 text-sm font-medium dark:border-neutral-800 dark:bg-neutral-800">
                 {doc.month}
               </div>
               <div className="divide-y divide-neutral-200 dark:divide-neutral-800">
-                {doc.stages.map((stage) => (
-                  <div key={stage.id} className="space-y-2 p-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">
-                        {stage.stage_number}. {stage.stage_name}
-                        {stage.is_timed && stage.par_time_seconds
-                          ? ` — ${stage.par_time_seconds}s`
-                          : ""}
-                        {stage.round_count ? ` · ${stage.round_count} rds` : ""}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setExpandedStage(
-                            expandedStage === stage.id ? null : stage.id,
-                          )
-                        }
-                        className="text-xs text-blue-600 hover:underline dark:text-blue-400"
-                      >
-                        {expandedStage === stage.id ? "Hide" : "Show"} full text
-                      </button>
-                    </div>
-                    {expandedStage === stage.id && (
-                      <>
-                        {stage.has_image && (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={`/api/cof/stages/${stage.id}/image`}
-                            alt={`Stage ${stage.stage_number} diagram`}
-                            className="w-full rounded-md border border-neutral-200 dark:border-neutral-800"
+                {doc.stages.map((stage) => {
+                  const isExpanded =
+                    baseExpandedStages.has(stage.id) !==
+                    toggledStages.has(stage.id);
+                  return (
+                    <div key={stage.id} className="space-y-2 p-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium">
+                          {stage.stage_number}. {stage.stage_name}
+                          {stage.is_timed && stage.par_time_seconds
+                            ? ` — ${stage.par_time_seconds}s`
+                            : ""}
+                          {stage.round_count
+                            ? ` · ${stage.round_count} rds`
+                            : ""}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => toggleStage(stage.id)}
+                          className="text-xs text-blue-600 hover:underline dark:text-blue-400"
+                        >
+                          {isExpanded ? "Hide" : "Show"} full text
+                        </button>
+                      </div>
+                      {isExpanded && (
+                        <>
+                          {stage.has_image && (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={`/api/cof/stages/${stage.id}/image`}
+                              alt={`Stage ${stage.stage_number} diagram`}
+                              className="w-full rounded-md border border-neutral-200 dark:border-neutral-800"
+                            />
+                          )}
+                          <pre className="max-h-48 overflow-y-auto rounded-md bg-neutral-100 p-2 text-xs whitespace-pre-wrap dark:bg-neutral-800">
+                            {stage.raw_stage_text}
+                          </pre>
+                        </>
+                      )}
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className={labelClass}>Prop</label>
+                          <input
+                            className={inputClass}
+                            defaultValue={stage.prop_name_freeform ?? ""}
+                            onBlur={(e) =>
+                              void updateStage(stage.id, {
+                                propNameFreeform: e.target.value,
+                              })
+                            }
                           />
-                        )}
-                        <pre className="max-h-48 overflow-y-auto rounded-md bg-neutral-100 p-2 text-xs whitespace-pre-wrap dark:bg-neutral-800">
-                          {stage.raw_stage_text}
-                        </pre>
-                      </>
-                    )}
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className={labelClass}>Prop</label>
-                        <input
-                          className={inputClass}
-                          defaultValue={stage.prop_name_freeform ?? ""}
-                          onBlur={(e) =>
-                            void updateStage(stage.id, {
-                              propNameFreeform: e.target.value,
-                            })
-                          }
-                        />
-                      </div>
-                      <div>
-                        <label className={labelClass}>Position</label>
-                        <input
-                          className={inputClass}
-                          defaultValue={stage.position ?? ""}
-                          onBlur={(e) =>
-                            void updateStage(stage.id, {
-                              position: e.target.value,
-                            })
-                          }
-                        />
-                      </div>
-                      <div>
-                        <label className={labelClass}>Distance (yd)</label>
-                        <input
-                          className={inputClass}
-                          type="number"
-                          defaultValue={stage.distance_yd ?? ""}
-                          onBlur={(e) =>
-                            void updateStage(stage.id, {
-                              distanceYd: e.target.value
-                                ? Number(e.target.value)
-                                : null,
-                            })
-                          }
-                        />
-                      </div>
-                      <div>
-                        <label className={labelClass}>Target</label>
-                        <input
-                          className={inputClass}
-                          defaultValue={stage.target_description ?? ""}
-                          onBlur={(e) =>
-                            void updateStage(stage.id, {
-                              targetDescription: e.target.value,
-                            })
-                          }
-                        />
+                        </div>
+                        <div>
+                          <label className={labelClass}>Position</label>
+                          <input
+                            className={inputClass}
+                            defaultValue={stage.position ?? ""}
+                            onBlur={(e) =>
+                              void updateStage(stage.id, {
+                                position: e.target.value,
+                              })
+                            }
+                          />
+                        </div>
+                        <div>
+                          <label className={labelClass}>Distance (yd)</label>
+                          <input
+                            className={inputClass}
+                            type="number"
+                            defaultValue={stage.distance_yd ?? ""}
+                            onBlur={(e) =>
+                              void updateStage(stage.id, {
+                                distanceYd: e.target.value
+                                  ? Number(e.target.value)
+                                  : null,
+                              })
+                            }
+                          />
+                        </div>
+                        <div>
+                          <label className={labelClass}>Target</label>
+                          <input
+                            className={inputClass}
+                            defaultValue={stage.target_description ?? ""}
+                            onBlur={(e) =>
+                              void updateStage(stage.id, {
+                                targetDescription: e.target.value,
+                              })
+                            }
+                          />
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           ))}

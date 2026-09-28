@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { LoginForm } from "@/components/LoginForm";
 
 interface ResultRow {
@@ -167,7 +168,14 @@ export default function ResultsPage() {
                   key={r.id}
                   className="border-t border-neutral-200 dark:border-neutral-800"
                 >
-                  <td className="p-2">{r.match_date}</td>
+                  <td className="p-2">
+                    <Link
+                      href={`/cof?month=${r.match_date.slice(0, 7)}`}
+                      className="text-blue-600 hover:underline dark:text-blue-400"
+                    >
+                      {r.match_date}
+                    </Link>
+                  </td>
                   <td className="p-2">{r.match_type ?? "—"}</td>
                   <td className="p-2">{r.club_name ?? "—"}</td>
                   <td className="p-2">{r.class ?? "—"}</td>
