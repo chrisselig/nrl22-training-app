@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { LoginForm } from "@/components/LoginForm";
 import {
   POSITION_IDS,
@@ -14,9 +15,18 @@ import {
   type StageLogEntry,
 } from "@/lib/log-storage";
 
+interface StrategyOption {
+  id: number;
+  position: string;
+  equipment: string | null;
+  bag_placement: string | null;
+  notes: string | null;
+}
+
 interface PropOption {
   id: number;
   name: string;
+  strategies: StrategyOption[];
 }
 
 interface CofStageOption {
@@ -117,6 +127,21 @@ export default function LogPage() {
     cofDocuments.find((d) => d.month === cofMonth)?.stages ?? [];
   const selectedStage = stagesForMonth.find((s) => s.id === cofStageId);
 
+  // A stage often names several props ("2 cinder blocks, 6ft ladder, 1
+  // cinder block" = multiple positions in one stage), so match every
+  // catalog prop mentioned in propName rather than requiring one exact
+  // prop per stage — surfaces all of their saved strategies at once
+  // instead of a blind, context-free position picker.
+  const matchedProps = useMemo(
+    () =>
+      propName.trim()
+        ? props.filter((p) =>
+            propName.toLowerCase().includes(p.name.toLowerCase()),
+          )
+        : [],
+    [propName, props],
+  );
+
   function applyCofStage(stage: CofStageOption | undefined) {
     setCofStageId(stage?.id ?? null);
     if (!stage) return;
@@ -141,8 +166,14 @@ export default function LogPage() {
 
     fetch("/api/props")
       .then((res) => (res.ok ? res.json() : []))
-      .then((data: { id: number; name: string }[]) =>
-        setProps(data.map((p) => ({ id: p.id, name: p.name }))),
+      .then((data: PropOption[]) =>
+        setProps(
+          data.map((p) => ({
+            id: p.id,
+            name: p.name,
+            strategies: p.strategies,
+          })),
+        ),
       )
       .catch(() => setProps([]));
 
@@ -427,6 +458,59 @@ export default function LogPage() {
             ))}
           </datalist>
         </div>
+
+        {matchedProps.length > 0 && (
+          <div className="space-y-1.5 rounded-md border border-neutral-200 bg-neutral-50 p-2 dark:border-neutral-800 dark:bg-neutral-900/50">
+            <span className={labelClass}>
+              Saved strategies for this stage&apos;s props
+            </span>
+            {matchedProps.map((p) =>
+              p.strategies.length > 0 ? (
+                p.strategies.map((s) => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() =>
+                      setPosition(isPositionId(s.position) ? s.position : null)
+                    }
+                    className={`block w-full rounded-md border px-2 py-1 text-left text-xs ${
+                      position === s.position
+                        ? "border-blue-600 bg-blue-50 dark:bg-blue-950/40"
+                        : "border-neutral-300 dark:border-neutral-700"
+                    }`}
+                  >
+                    <span className="font-medium">
+                      {p.name} —{" "}
+                      {isPositionId(s.position)
+                        ? POSITION_LABELS[s.position]
+                        : s.position}
+                    </span>
+                    {(s.equipment || s.bag_placement || s.notes) && (
+                      <span className="block text-neutral-600 dark:text-neutral-400">
+                        {[s.equipment, s.bag_placement, s.notes]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </span>
+                    )}
+                  </button>
+                ))
+              ) : (
+                <p
+                  key={p.id}
+                  className="text-xs text-neutral-500 dark:text-neutral-500"
+                >
+                  {p.name}: no saved strategy yet —{" "}
+                  <Link
+                    href="/props"
+                    className="text-blue-600 hover:underline dark:text-blue-400"
+                  >
+                    add one
+                  </Link>
+                </p>
+              ),
+            )}
+          </div>
+        )}
 
         <div>
           <span className={labelClass}>Position</span>
