@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { LoginForm } from "@/components/LoginForm";
 import {
   POSITION_IDS,
@@ -59,6 +59,7 @@ export default function PropsPage() {
   const [props, setProps] = useState<PropRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [needsLogin, setNeedsLogin] = useState(false);
+  const retryRef = useRef<() => void>(() => {});
 
   async function reload() {
     setError(null);
@@ -78,7 +79,7 @@ export default function PropsPage() {
     reload();
   }, []);
 
-  async function withAuth(action: () => Promise<void>) {
+  async function withAuth(action: () => Promise<void>, retry: () => void) {
     setError(null);
     try {
       await action();
@@ -86,6 +87,7 @@ export default function PropsPage() {
     } catch (e) {
       if (e instanceof AuthRequiredError) {
         setNeedsLogin(true);
+        retryRef.current = retry;
         return;
       }
       setError(e instanceof Error ? e.message : "Something went wrong");
@@ -93,21 +95,27 @@ export default function PropsPage() {
   }
 
   async function handleAddProp(name: string, category: string, notes: string) {
-    await withAuth(async () => {
-      await postJson("/api/props", {
-        name,
-        category,
-        notes: notes || undefined,
-      });
-      await reload();
-    });
+    await withAuth(
+      async () => {
+        await postJson("/api/props", {
+          name,
+          category,
+          notes: notes || undefined,
+        });
+        await reload();
+      },
+      () => void handleAddProp(name, category, notes),
+    );
   }
 
   async function handleDeleteProp(id: number) {
-    await withAuth(async () => {
-      await deleteJson(`/api/props/${id}`);
-      await reload();
-    });
+    await withAuth(
+      async () => {
+        await deleteJson(`/api/props/${id}`);
+        await reload();
+      },
+      () => void handleDeleteProp(id),
+    );
   }
 
   async function handleSaveStrategy(
@@ -117,16 +125,26 @@ export default function PropsPage() {
     bagPlacement: string,
     notes: string,
   ) {
-    await withAuth(async () => {
-      await postJson("/api/strategies", {
-        propId,
-        position,
-        equipment: equipment || undefined,
-        bagPlacement: bagPlacement || undefined,
-        notes: notes || undefined,
-      });
-      await reload();
-    });
+    await withAuth(
+      async () => {
+        await postJson("/api/strategies", {
+          propId,
+          position,
+          equipment: equipment || undefined,
+          bagPlacement: bagPlacement || undefined,
+          notes: notes || undefined,
+        });
+        await reload();
+      },
+      () =>
+        void handleSaveStrategy(
+          propId,
+          position,
+          equipment,
+          bagPlacement,
+          notes,
+        ),
+    );
   }
 
   const grouped = new Map<string, PropRow[]>();
@@ -149,7 +167,14 @@ export default function PropsPage() {
       {error && (
         <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
       )}
-      {needsLogin && <LoginForm onSuccess={() => setNeedsLogin(false)} />}
+      {needsLogin && (
+        <LoginForm
+          onSuccess={() => {
+            setNeedsLogin(false);
+            retryRef.current();
+          }}
+        />
+      )}
 
       <AddPropForm onAdd={handleAddProp} />
 
@@ -169,8 +194,12 @@ export default function PropsPage() {
               <PropCard
                 key={prop.id}
                 prop={prop}
+                // Both handlers only run from PropCard's own onClick — the
+                // ref write they trigger happens on click, never at render.
+                // eslint-disable-next-line react-hooks/refs
                 onDelete={() => handleDeleteProp(prop.id)}
                 onSaveStrategy={(position, equipment, bagPlacement, notes) =>
+                  // eslint-disable-next-line react-hooks/refs
                   handleSaveStrategy(
                     prop.id,
                     position,

@@ -137,6 +137,17 @@ async function extractPdfText(pdfBytes: Buffer): Promise<string> {
     .join("");
 }
 
+/** All months nrl22.com's downloads archive currently lists, sorted ascending. */
+export async function listAvailableMonths(
+  username: string,
+  password: string,
+): Promise<string[]> {
+  const session = new Nrl22Session();
+  await session.login(username, password);
+  const nonces = await session.listDownloadNonces();
+  return [...nonces.keys()].sort();
+}
+
 export async function fetchCofPdf(
   username: string,
   password: string,
