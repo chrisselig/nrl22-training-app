@@ -5,6 +5,7 @@ const NAV_LINKS = [
   { href: "/log", label: "Match Log" },
   { href: "/results", label: "Results" },
   { href: "/cof", label: "Course of Fire" },
+  { href: "/wind", label: "Wind Reading" },
   { href: "/", label: "Target Printer" },
 ];
 
