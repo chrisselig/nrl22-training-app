@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { LoginForm } from "@/components/LoginForm";
 import { PageHeader } from "@/components/PageHeader";
+import { POSITION_IDS, POSITION_LABELS } from "@/lib/positions";
 
 interface CofStage {
   id: number;
@@ -29,6 +30,11 @@ interface CofDocument {
   stages: CofStage[];
 }
 
+interface PropOption {
+  id: number;
+  name: string;
+}
+
 const inputClass =
   "w-full rounded-md border border-neutral-300 bg-white px-2 py-1.5 text-sm text-neutral-900 focus:border-blue-500 focus:outline-none dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100";
 const labelClass =
@@ -46,6 +52,8 @@ function nextMonth(month: string): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
+type ViewMode = "month" | "year" | "all";
+
 export default function CofPage() {
   const [documents, setDocuments] = useState<CofDocument[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -56,6 +64,11 @@ export default function CofPage() {
   const [busy, setBusy] = useState(false);
   const [toggledStages, setToggledStages] = useState<Set<number>>(new Set());
   const [focusMonth, setFocusMonth] = useState<string | null>(null);
+  const [props, setProps] = useState<PropOption[]>([]);
+  const [viewMode, setViewMode] = useState<ViewMode>("month");
+  const [viewMonth, setViewMonth] = useState<string | null>(null);
+  const [viewYear, setViewYear] = useState<string | null>(null);
+  const viewDefaulted = useRef(false);
 
   function toggleStage(stageId: number) {
     setToggledStages((prev) => {
@@ -83,22 +96,48 @@ export default function CofPage() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     reload();
+    fetch("/api/props")
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data: PropOption[]) => setProps(data))
+      .catch(() => {});
     const m = new URLSearchParams(window.location.search).get("month");
     if (m) {
       hasExplicitMonth.current = true;
       setMonth(m);
       setFocusMonth(m);
+      setViewMode("month");
+      setViewMonth(m);
+      viewDefaulted.current = true;
     }
   }, []);
 
   useEffect(() => {
-    if (hasExplicitMonth.current || !documents || documents.length === 0) {
-      return;
+    if (!documents || documents.length === 0) return;
+    if (!hasExplicitMonth.current) {
+      // Default the import target to the month after the latest archived one,
+      // instead of the real calendar month, so it lines up with what's below.
+      setMonth(nextMonth(documents[0].month));
     }
-    // Default the import target to the month after the latest archived one,
-    // instead of the real calendar month, so it lines up with what's below.
-    setMonth(nextMonth(documents[0].month));
+    if (!viewDefaulted.current) {
+      viewDefaulted.current = true;
+      setViewMonth(documents[0].month);
+      setViewYear(documents[0].month.slice(0, 4));
+    }
   }, [documents]);
+
+  const availableYears = useMemo(() => {
+    const years = new Set((documents ?? []).map((d) => d.month.slice(0, 4)));
+    return Array.from(years).sort().reverse();
+  }, [documents]);
+
+  const visibleDocuments = useMemo(() => {
+    if (!documents) return [];
+    if (viewMode === "all") return documents;
+    if (viewMode === "year") {
+      return documents.filter((d) => d.month.slice(0, 4) === viewYear);
+    }
+    return documents.filter((d) => d.month === viewMonth);
+  }, [documents, viewMode, viewMonth, viewYear]);
 
   const baseExpandedStages = useMemo(() => {
     const doc = documents?.find((d) => d.month === focusMonth);
@@ -166,6 +205,19 @@ export default function CofPage() {
       { month, rawText: pastedText },
       () => void handlePasteImport(),
     );
+  }
+
+  // The PATCH endpoint replaces all five stage fields on every call (it's
+  // not a partial update), so every caller must resend the stage's current
+  // values or it silently nulls out the fields it didn't mean to touch.
+  function stageBase(stage: CofStage) {
+    return {
+      propId: stage.prop_id,
+      propNameFreeform: stage.prop_name_freeform,
+      position: stage.position,
+      distanceYd: stage.distance_yd ? Number(stage.distance_yd) : null,
+      targetDescription: stage.target_description,
+    };
   }
 
   async function updateStage(stageId: number, patch: Record<string, unknown>) {
@@ -257,7 +309,56 @@ export default function CofPage() {
         </p>
       ) : (
         <div className="space-y-4">
-          {documents.map((doc) => (
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex gap-1">
+              {(["month", "year", "all"] as ViewMode[]).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => setViewMode(mode)}
+                  className={`rounded-md border px-3 py-1.5 text-sm font-medium capitalize ${
+                    viewMode === mode
+                      ? "border-blue-600 bg-blue-600 text-white"
+                      : "border-neutral-300 text-neutral-700 hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
+                  }`}
+                >
+                  {mode}
+                </button>
+              ))}
+            </div>
+            {viewMode === "month" && (
+              <select
+                className={`${inputClass} w-auto`}
+                value={viewMonth ?? ""}
+                onChange={(e) => setViewMonth(e.target.value)}
+              >
+                {documents.map((d) => (
+                  <option key={d.month} value={d.month}>
+                    {d.month}
+                  </option>
+                ))}
+              </select>
+            )}
+            {viewMode === "year" && (
+              <select
+                className={`${inputClass} w-auto`}
+                value={viewYear ?? ""}
+                onChange={(e) => setViewYear(e.target.value)}
+              >
+                {availableYears.map((y) => (
+                  <option key={y} value={y}>
+                    {y}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+          <datalist id="prop-options">
+            {props.map((p) => (
+              <option key={p.id} value={p.name} />
+            ))}
+          </datalist>
+          {visibleDocuments.map((doc) => (
             <div
               key={doc.id}
               id={`cof-${doc.month}`}
@@ -312,26 +413,57 @@ export default function CofPage() {
                         <div>
                           <label className={labelClass}>Prop</label>
                           <input
+                            list="prop-options"
                             className={inputClass}
-                            defaultValue={stage.prop_name_freeform ?? ""}
-                            onBlur={(e) =>
-                              void updateStage(stage.id, {
-                                propNameFreeform: e.target.value,
-                              })
+                            defaultValue={
+                              (stage.prop_id &&
+                                props.find((p) => p.id === stage.prop_id)
+                                  ?.name) ??
+                              stage.prop_name_freeform ??
+                              ""
                             }
+                            placeholder="Type or pick a known prop"
+                            onBlur={(e) => {
+                              const typed = e.target.value.trim();
+                              const matched = props.find(
+                                (p) =>
+                                  p.name.toLowerCase() ===
+                                  typed.toLowerCase(),
+                              );
+                              void updateStage(stage.id, {
+                                ...stageBase(stage),
+                                propId: matched ? matched.id : null,
+                                propNameFreeform: matched
+                                  ? null
+                                  : typed || null,
+                              });
+                            }}
                           />
                         </div>
                         <div>
                           <label className={labelClass}>Position</label>
-                          <input
-                            className={inputClass}
-                            defaultValue={stage.position ?? ""}
-                            onBlur={(e) =>
-                              void updateStage(stage.id, {
-                                position: e.target.value,
-                              })
-                            }
-                          />
+                          <div className="mt-1 flex flex-wrap gap-1">
+                            {POSITION_IDS.map((p) => (
+                              <button
+                                key={p}
+                                type="button"
+                                onClick={() =>
+                                  void updateStage(stage.id, {
+                                    ...stageBase(stage),
+                                    position:
+                                      stage.position === p ? null : p,
+                                  })
+                                }
+                                className={`rounded-md border px-2 py-1 text-xs ${
+                                  stage.position === p
+                                    ? "border-blue-600 bg-blue-600 text-white"
+                                    : "border-neutral-300 text-neutral-700 dark:border-neutral-700 dark:text-neutral-300"
+                                }`}
+                              >
+                                {POSITION_LABELS[p]}
+                              </button>
+                            ))}
+                          </div>
                         </div>
                         <div>
                           <label className={labelClass}>Distance (yd)</label>
@@ -341,6 +473,7 @@ export default function CofPage() {
                             defaultValue={stage.distance_yd ?? ""}
                             onBlur={(e) =>
                               void updateStage(stage.id, {
+                                ...stageBase(stage),
                                 distanceYd: e.target.value
                                   ? Number(e.target.value)
                                   : null,
@@ -355,6 +488,7 @@ export default function CofPage() {
                             defaultValue={stage.target_description ?? ""}
                             onBlur={(e) =>
                               void updateStage(stage.id, {
+                                ...stageBase(stage),
                                 targetDescription: e.target.value,
                               })
                             }
