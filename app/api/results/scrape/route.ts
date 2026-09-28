@@ -34,10 +34,18 @@ export async function POST(request: Request) {
     );
   }
 
+  // nrl22.com's search endpoint does a broad substring match across every
+  // field (club name included, not just shooter name) — a search like "Buffalo
+  // Target Shooters Association" returns every shooter at that club. Never
+  // trust it to have actually filtered by name; re-check client-side.
+  const needle = body.search.trim().toLowerCase();
+  let matched = 0;
   let upserted = 0;
   for (const raw of rows) {
     const r = parseNrl22Row(raw);
     if (!r.matchDate) continue;
+    if (r.shooterName?.trim().toLowerCase() !== needle) continue;
+    matched++;
     const inserted = await sql`
       insert into results (
         source, match_date, season, match_type, club_name, shooter_name,
@@ -65,5 +73,5 @@ export async function POST(request: Request) {
     if (inserted.length) upserted++;
   }
 
-  return NextResponse.json({ fetched: rows.length, upserted });
+  return NextResponse.json({ fetched: matched, upserted });
 }
