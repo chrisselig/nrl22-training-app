@@ -1,3 +1,5 @@
+import { PageHeader } from "@/components/PageHeader";
+
 const cardClass =
   "space-y-3 rounded-lg border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900";
 const tableWrapClass =
@@ -17,14 +19,11 @@ export const metadata = {
 export default function WindPage() {
   return (
     <div className="mx-auto w-full max-w-3xl flex-1 space-y-6 p-4 lg:p-6">
-      <div className="space-y-1">
-        <h1 className="text-lg font-semibold">Reading Wind Without a Meter</h1>
-        <p className="text-sm text-neutral-600 dark:text-neutral-400">
-          Mirage, environment, and bracketing — three reads that get you to a
-          hold before the timer starts. Adapted from the shooting-fundamentals
-          field card.
-        </p>
-      </div>
+      <PageHeader eyebrow="Field skills" title="Reading Wind Without a Meter">
+        Mirage, environment, and bracketing — three reads that get you to a hold
+        before the timer starts. Adapted from the shooting-fundamentals field
+        card.
+      </PageHeader>
 
       <section className={cardClass}>
         <h2 className="text-sm font-semibold">1. The Mirage Visual Scale</h2>

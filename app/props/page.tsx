@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { LoginForm } from "@/components/LoginForm";
+import { PageHeader } from "@/components/PageHeader";
 import {
   POSITION_IDS,
   POSITION_LABELS,
@@ -156,13 +157,10 @@ export default function PropsPage() {
 
   return (
     <div className="mx-auto w-full max-w-3xl flex-1 space-y-6 p-4 lg:p-6">
-      <header>
-        <h1 className="text-xl font-semibold">Props & Strategy</h1>
-        <p className="text-sm text-neutral-500 dark:text-neutral-400">
-          What to do when you see it again: bag, position, and how to lay it on
-          the prop.
-        </p>
-      </header>
+      <PageHeader eyebrow="Reference" title="Props & Strategy">
+        What to do when you see it again: bag, position, and how to lay it on
+        the prop.
+      </PageHeader>
 
       {error && (
         <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
