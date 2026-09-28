@@ -35,6 +35,15 @@ const statLabelClass =
 
 const SHOOTER_NAME_KEY = "nrl22-shooter-name";
 
+interface ClubRankEntry {
+  resultId: number;
+  clubName: string;
+  fieldSize: number;
+  overall: { rank: number; of: number } | null;
+  division: { rank: number; of: number } | null;
+  class: { rank: number; of: number } | null;
+}
+
 class AuthRequiredError extends Error {}
 
 function ordinal(n: number): string {
@@ -196,6 +205,8 @@ export default function ResultsPage() {
   const [shooterName, setShooterName] = useState("");
   const [fetching, setFetching] = useState(false);
   const [lastFetchMsg, setLastFetchMsg] = useState<string | null>(null);
+  const [clubRanks, setClubRanks] = useState<Record<number, ClubRankEntry>>({});
+  const [clubRankLoading, setClubRankLoading] = useState(false);
   const retryRef = useRef<() => void>(() => {});
 
   async function reload() {
@@ -209,11 +220,24 @@ export default function ResultsPage() {
     }
   }
 
+  async function loadClubRanks() {
+    setClubRankLoading(true);
+    try {
+      const res = await fetch("/api/results/club-rank");
+      if (!res.ok) return;
+      const data = (await res.json()) as ClubRankEntry[];
+      setClubRanks(Object.fromEntries(data.map((e) => [e.resultId, e])));
+    } finally {
+      setClubRankLoading(false);
+    }
+  }
+
   useEffect(() => {
     // Mount-time fetch from the DB-backed API, plus loading the
     // locally-remembered shooter name used for the scrape search field.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     reload();
+    void loadClubRanks();
     setShooterName(localStorage.getItem(SHOOTER_NAME_KEY) ?? "");
   }, []);
 
@@ -249,6 +273,7 @@ export default function ResultsPage() {
       );
       setNeedsLogin(false);
       await reload();
+      void loadClubRanks();
     } catch (e) {
       if (e instanceof AuthRequiredError) {
         retryRef.current = () => void handleFetchLatest();
@@ -270,6 +295,7 @@ export default function ResultsPage() {
       if (!res.ok) throw new Error("Delete failed");
       setNeedsLogin(false);
       await reload();
+      void loadClubRanks();
     } catch (e) {
       if (e instanceof AuthRequiredError) {
         retryRef.current = () => void handleDelete(id);
@@ -457,6 +483,42 @@ export default function ResultsPage() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {sorted.length > 0 && (
+        <div className="space-y-2 rounded-lg border border-neutral-200 bg-neutral-50 p-3 dark:border-neutral-800 dark:bg-neutral-900/50">
+          <h2 className="text-sm font-semibold text-neutral-800 dark:text-neutral-100">
+            Home club standing
+          </h2>
+          <p className="text-xs text-neutral-500 dark:text-neutral-400">
+            How you rank against everyone else who shot the same match at your
+            home club, pulled live from nrl22.com (not stored).
+          </p>
+          {clubRankLoading && Object.keys(clubRanks).length === 0 ? (
+            <p className="text-sm text-neutral-500">Computing…</p>
+          ) : (
+            <div className="space-y-1">
+              {[...sorted].reverse().map((r) => {
+                const cr = clubRanks[r.id];
+                if (!cr?.overall) return null;
+                return (
+                  <p key={r.id} className="text-sm">
+                    <span className="font-medium">
+                      {formatDate(r.match_date)}
+                    </span>
+                    {": "}
+                    {ordinal(cr.overall.rank)} of {cr.overall.of} at{" "}
+                    {cr.clubName}
+                    {cr.division &&
+                      ` · ${ordinal(cr.division.rank)} of ${cr.division.of} in ${r.division}`}
+                    {cr.class &&
+                      ` · ${ordinal(cr.class.rank)} of ${cr.class.of} in ${r.class}`}
+                  </p>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
     </div>
