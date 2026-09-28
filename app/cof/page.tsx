@@ -40,6 +40,12 @@ function currentMonth(): string {
   return new Date().toISOString().slice(0, 7);
 }
 
+function nextMonth(month: string): string {
+  const [year, mo] = month.split("-").map(Number);
+  const d = new Date(year, mo, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
 export default function CofPage() {
   const [documents, setDocuments] = useState<CofDocument[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -72,15 +78,27 @@ export default function CofPage() {
     }
   }
 
+  const hasExplicitMonth = useRef(false);
+
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     reload();
     const m = new URLSearchParams(window.location.search).get("month");
     if (m) {
+      hasExplicitMonth.current = true;
       setMonth(m);
       setFocusMonth(m);
     }
   }, []);
+
+  useEffect(() => {
+    if (hasExplicitMonth.current || !documents || documents.length === 0) {
+      return;
+    }
+    // Default the import target to the month after the latest archived one,
+    // instead of the real calendar month, so it lines up with what's below.
+    setMonth(nextMonth(documents[0].month));
+  }, [documents]);
 
   const baseExpandedStages = useMemo(() => {
     const doc = documents?.find((d) => d.month === focusMonth);
