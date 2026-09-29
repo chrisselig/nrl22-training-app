@@ -78,3 +78,102 @@ export function parseNrl22Row(row: Nrl22ResultRow) {
     leaderboardPoints: toNumberOrNull(row.leaderboard_points),
   };
 }
+
+const NRL22_LEADERBOARD_URL = "https://nrl22.com/wp-json/nrl22/v1/leaderboard";
+
+export type Nrl22LeaderboardType = "NRL22" | "International";
+
+interface Nrl22LeaderboardRow {
+  display_rank: number;
+  name: string | null;
+  division: string | null;
+  country_code?: string | null;
+  country?: string | null;
+}
+
+interface Nrl22LeaderboardResponse {
+  recordsFiltered: number;
+  data: Nrl22LeaderboardRow[];
+}
+
+async function fetchNrl22Leaderboard(params: {
+  season: string;
+  type: Nrl22LeaderboardType;
+  division?: string;
+  country?: string;
+  search?: string;
+}): Promise<Nrl22LeaderboardResponse> {
+  const url = new URL(NRL22_LEADERBOARD_URL);
+  url.searchParams.set("season", params.season);
+  url.searchParams.set("type", params.type);
+  url.searchParams.set("start", "0");
+  url.searchParams.set("length", "50");
+  if (params.division) url.searchParams.set("division", params.division);
+  if (params.country) url.searchParams.set("country", params.country);
+  if (params.search) url.searchParams.set("search", params.search);
+
+  const res = await fetch(url, {
+    headers: { "User-Agent": "Mozilla/5.0 (nrl22-training-app)" },
+  });
+  if (!res.ok) {
+    throw new Error(`nrl22.com leaderboard request failed: ${res.status}`);
+  }
+  return (await res.json()) as Nrl22LeaderboardResponse;
+}
+
+/**
+ * The leaderboard's "season" slug isn't the calendar year (e.g. season
+ * "2027" is already active in late 2026), so read it live off the
+ * leaderboard nav link rather than hardcoding a value that goes stale.
+ */
+export async function fetchCurrentNrl22Season(): Promise<string> {
+  const res = await fetch("https://nrl22.com/stats/", {
+    headers: { "User-Agent": "Mozilla/5.0 (nrl22-training-app)" },
+  });
+  if (!res.ok) {
+    throw new Error(`nrl22.com stats request failed: ${res.status}`);
+  }
+  const html = await res.text();
+  const match = html.match(/(\d{4})-nrl22-leaderboard/);
+  if (!match) throw new Error("Could not determine current nrl22.com season");
+  return match[1];
+}
+
+/**
+ * The API recomputes `display_rank` scoped to whatever division/country
+ * filters are applied, so the same shooter gets a different rank per call —
+ * this fetches the row matching `shooterName` under one specific filter set.
+ */
+export async function findLeaderboardEntry(
+  season: string,
+  type: Nrl22LeaderboardType,
+  shooterName: string,
+  extra: { division?: string; country?: string } = {},
+) {
+  const res = await fetchNrl22Leaderboard({
+    season,
+    type,
+    search: shooterName,
+    ...extra,
+  });
+  const row = res.data.find(
+    (r) => r.name?.trim().toLowerCase() === shooterName.trim().toLowerCase(),
+  );
+  if (!row) return null;
+  return {
+    rank: row.display_rank,
+    division: row.division,
+    countryCode: row.country_code ?? null,
+    country: row.country ?? null,
+  };
+}
+
+/** Field size for a given filter set — `recordsFiltered` with no search text. */
+export async function countLeaderboard(
+  season: string,
+  type: Nrl22LeaderboardType,
+  extra: { division?: string; country?: string } = {},
+): Promise<number> {
+  const res = await fetchNrl22Leaderboard({ season, type, ...extra });
+  return res.recordsFiltered;
+}

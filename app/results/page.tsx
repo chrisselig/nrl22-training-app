@@ -44,6 +44,21 @@ interface ClubRankEntry {
   class: { rank: number; of: number } | null;
 }
 
+interface NationalRank {
+  season: string;
+  division: string | null;
+  us: {
+    overall: { rank: number; of: number };
+    division: { rank: number | null; of: number };
+  } | null;
+  country: {
+    code: string;
+    label: string;
+    overall: { rank: number | null; of: number };
+    division: { rank: number | null; of: number };
+  } | null;
+}
+
 class AuthRequiredError extends Error {}
 
 function ordinal(n: number): string {
@@ -115,9 +130,39 @@ function buildNarrative(sorted: ResultRow[]): string {
   return text;
 }
 
+function normalizedLine(
+  values: (number | null)[],
+  n: number,
+  width: number,
+  height: number,
+  padX: number,
+  padY: number,
+  invert: boolean,
+) {
+  const defined = values.filter((v): v is number => v !== null);
+  if (defined.length === 0)
+    return { points: [] as { x: number; y: number }[], min: 0, max: 0 };
+  const min = Math.min(...defined);
+  const max = Math.max(...defined);
+  const span = Math.max(max - min, 1);
+  const points = values.flatMap((v, i) => {
+    if (v === null) return [];
+    const frac = (v - min) / span;
+    const y = padY + (invert ? frac : 1 - frac) * (height - padY * 2);
+    const x = padX + (n === 1 ? 0 : (i / (n - 1)) * (width - padX * 2));
+    return [{ x, y }];
+  });
+  return { points, min, max };
+}
+
+function linePath(points: { x: number; y: number }[]) {
+  return points
+    .map((p, i) => `${i === 0 ? "M" : "L"}${p.x.toFixed(1)},${p.y.toFixed(1)}`)
+    .join(" ");
+}
+
 function TrendChart({ sorted }: { sorted: ResultRow[] }) {
-  const ranked = sorted.filter((r) => r.overall_finish !== null);
-  if (ranked.length < 2) {
+  if (sorted.length < 2) {
     return (
       <div className={`${statCardClass} flex items-center gap-3`}>
         <svg
@@ -141,59 +186,153 @@ function TrendChart({ sorted }: { sorted: ResultRow[] }) {
   }
 
   const width = 320;
-  const height = 90;
+  const height = 110;
   const padX = 8;
-  const padY = 12;
-  const finishes = ranked.map((r) => r.overall_finish!);
-  const worst = Math.max(...finishes);
-  const best = Math.min(...finishes);
-  const span = Math.max(worst - best, 1);
+  const padY = 14;
+  const n = sorted.length;
 
-  // Lower finish is better, so invert: best finish plots near the top.
-  const points = ranked.map((r, i) => {
-    const x = padX + (i / (ranked.length - 1)) * (width - padX * 2);
-    const y = padY + ((r.overall_finish! - best) / span) * (height - padY * 2);
-    return { x, y };
-  });
+  const scoreValues = sorted.map((r) =>
+    r.raw_score !== null ? Number(r.raw_score) : null,
+  );
+  const finishValues = sorted.map((r) => r.overall_finish);
 
-  const linePath = points
-    .map((p, i) => `${i === 0 ? "M" : "L"}${p.x.toFixed(1)},${p.y.toFixed(1)}`)
-    .join(" ");
-  const areaPath = `${linePath} L${points[points.length - 1].x.toFixed(1)},${height - padY} L${points[0].x.toFixed(1)},${height - padY} Z`;
+  // Higher score is better (plot near top); lower finish number is better
+  // (also plot near top) — each series normalized against its own range so
+  // wildly different scales (score vs. finish position) share one chart.
+  const score = normalizedLine(
+    scoreValues,
+    n,
+    width,
+    height,
+    padX,
+    padY,
+    false,
+  );
+  const finish = normalizedLine(
+    finishValues,
+    n,
+    width,
+    height,
+    padX,
+    padY,
+    true,
+  );
+
+  const lastScore = [...scoreValues].reverse().find((v) => v !== null);
+  const lastFinish = [...finishValues].reverse().find((v) => v !== null);
 
   return (
     <div className={statCardClass}>
-      <p className={`${statLabelClass} mb-2`}>Overall finish, by match</p>
+      <div className="mb-2 flex items-center justify-between">
+        <p className={statLabelClass}>Score &amp; overall finish, by match</p>
+        <div className="flex items-center gap-3 text-xs">
+          <span className="flex items-center gap-1 text-neutral-600 dark:text-neutral-300">
+            <span className="h-0.5 w-3 rounded-full bg-blue-600" /> Score
+          </span>
+          <span className="flex items-center gap-1 text-neutral-600 dark:text-neutral-300">
+            <span className="h-0.5 w-3 rounded-full bg-amber-500" /> Finish
+          </span>
+        </div>
+      </div>
       <svg viewBox={`0 0 ${width} ${height}`} className="w-full">
-        <defs>
-          <linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#2563eb" stopOpacity={0.25} />
-            <stop offset="100%" stopColor="#2563eb" stopOpacity={0} />
-          </linearGradient>
-        </defs>
-        <path d={areaPath} fill="url(#trendFill)" />
-        <path
-          d={linePath}
-          fill="none"
-          stroke="#2563eb"
-          strokeWidth={2}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        {points.map((p, i) => (
-          <circle
-            key={i}
-            cx={p.x}
-            cy={p.y}
-            r={i === points.length - 1 ? 3.5 : 2.5}
-            fill="#2563eb"
+        {finish.points.length > 0 && (
+          <path
+            d={linePath(finish.points)}
+            fill="none"
+            stroke="#f59e0b"
+            strokeWidth={2}
+            strokeDasharray="4 3"
+            strokeLinecap="round"
+            strokeLinejoin="round"
           />
+        )}
+        {score.points.length > 0 && (
+          <path
+            d={linePath(score.points)}
+            fill="none"
+            stroke="#2563eb"
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        )}
+        {finish.points.map((p, i) => (
+          <circle key={`f${i}`} cx={p.x} cy={p.y} r={2.5} fill="#f59e0b" />
+        ))}
+        {score.points.map((p, i) => (
+          <circle key={`s${i}`} cx={p.x} cy={p.y} r={2.5} fill="#2563eb" />
         ))}
       </svg>
       <div className="flex justify-between text-xs text-neutral-500 dark:text-neutral-400">
-        <span>Best: {ordinal(best)}</span>
-        <span>Latest: {ordinal(finishes[finishes.length - 1])}</span>
+        <span>
+          {lastScore !== undefined ? `Latest score: ${lastScore}` : ""}
+        </span>
+        <span>
+          {lastFinish !== undefined
+            ? `Latest finish: ${ordinal(lastFinish)}`
+            : ""}
+        </span>
       </div>
+    </div>
+  );
+}
+
+function DivisionTarget({
+  date,
+  division,
+  rank,
+  of,
+}: {
+  date: string;
+  division: string | null;
+  rank: number;
+  of: number;
+}) {
+  const size = 104;
+  const center = size / 2;
+  const maxR = center - 8;
+  const rings = 4;
+  // rank 1 = dead center (percentile 1), rank === of = outer ring (percentile 0).
+  const percentile = of > 1 ? 1 - (rank - 1) / (of - 1) : 1;
+  const dotR = (1 - percentile) * maxR;
+
+  return (
+    <div className="flex flex-col items-center gap-1">
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        {Array.from({ length: rings }).map((_, i) => (
+          <circle
+            key={i}
+            cx={center}
+            cy={center}
+            r={maxR * ((i + 1) / rings)}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={1}
+            className="text-neutral-300 dark:text-neutral-700"
+          />
+        ))}
+        <circle
+          cx={center}
+          cy={center}
+          r={2}
+          fill="currentColor"
+          className="text-neutral-400 dark:text-neutral-600"
+        />
+        <circle
+          cx={center}
+          cy={center - dotR}
+          r={5}
+          fill="#2563eb"
+          stroke="white"
+          strokeWidth={1.5}
+        />
+      </svg>
+      <p className="text-xs font-semibold text-neutral-800 dark:text-neutral-100">
+        {ordinal(rank)} of {of}
+      </p>
+      <p className="text-[11px] text-neutral-500 dark:text-neutral-400">
+        {division ?? "Division"} · {formatDate(date)}
+      </p>
     </div>
   );
 }
@@ -207,6 +346,8 @@ export default function ResultsPage() {
   const [lastFetchMsg, setLastFetchMsg] = useState<string | null>(null);
   const [clubRanks, setClubRanks] = useState<Record<number, ClubRankEntry>>({});
   const [clubRankLoading, setClubRankLoading] = useState(false);
+  const [nationalRank, setNationalRank] = useState<NationalRank | null>(null);
+  const [nationalRankLoading, setNationalRankLoading] = useState(false);
   const retryRef = useRef<() => void>(() => {});
 
   async function reload() {
@@ -232,12 +373,24 @@ export default function ResultsPage() {
     }
   }
 
+  async function loadNationalRank() {
+    setNationalRankLoading(true);
+    try {
+      const res = await fetch("/api/results/national-rank");
+      if (!res.ok) return;
+      setNationalRank((await res.json()) as NationalRank);
+    } finally {
+      setNationalRankLoading(false);
+    }
+  }
+
   useEffect(() => {
     // Mount-time fetch from the DB-backed API, plus loading the
     // locally-remembered shooter name used for the scrape search field.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     reload();
     void loadClubRanks();
+    void loadNationalRank();
     setShooterName(localStorage.getItem(SHOOTER_NAME_KEY) ?? "");
   }, []);
 
@@ -274,6 +427,7 @@ export default function ResultsPage() {
       setNeedsLogin(false);
       await reload();
       void loadClubRanks();
+      void loadNationalRank();
     } catch (e) {
       if (e instanceof AuthRequiredError) {
         retryRef.current = () => void handleFetchLatest();
@@ -486,8 +640,76 @@ export default function ResultsPage() {
         </div>
       )}
 
-      {sorted.length > 0 && (
+      {(nationalRank || nationalRankLoading) && (
         <div className="space-y-2 rounded-lg border border-neutral-200 bg-neutral-50 p-3 dark:border-neutral-800 dark:bg-neutral-900/50">
+          <h2 className="text-sm font-semibold text-neutral-800 dark:text-neutral-100">
+            National &amp; international standing
+          </h2>
+          <p className="text-xs text-neutral-500 dark:text-neutral-400">
+            Your live season rank on nrl22.com&apos;s leaderboards
+            {nationalRank?.season ? ` (${nationalRank.season} season)` : ""}.
+          </p>
+          {!nationalRank ? (
+            <p className="text-sm text-neutral-500">Computing…</p>
+          ) : !nationalRank.us ? (
+            <p className="text-sm text-neutral-500">
+              Not found on the leaderboard yet.
+            </p>
+          ) : (
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+              <div className={statCardClass}>
+                <p className={statValueClass}>
+                  {ordinal(nationalRank.us.overall.rank)}
+                </p>
+                <p className={statLabelClass}>
+                  US overall (of {nationalRank.us.overall.of})
+                </p>
+              </div>
+              <div className={statCardClass}>
+                <p className={statValueClass}>
+                  {nationalRank.us.division.rank !== null
+                    ? ordinal(nationalRank.us.division.rank)
+                    : "—"}
+                </p>
+                <p className={statLabelClass}>
+                  US {nationalRank.division ?? "division"} (of{" "}
+                  {nationalRank.us.division.of})
+                </p>
+              </div>
+              {nationalRank.country && (
+                <>
+                  <div className={statCardClass}>
+                    <p className={statValueClass}>
+                      {nationalRank.country.overall.rank !== null
+                        ? ordinal(nationalRank.country.overall.rank)
+                        : "—"}
+                    </p>
+                    <p className={statLabelClass}>
+                      {nationalRank.country.label} overall (of{" "}
+                      {nationalRank.country.overall.of})
+                    </p>
+                  </div>
+                  <div className={statCardClass}>
+                    <p className={statValueClass}>
+                      {nationalRank.country.division.rank !== null
+                        ? ordinal(nationalRank.country.division.rank)
+                        : "—"}
+                    </p>
+                    <p className={statLabelClass}>
+                      {nationalRank.country.label}{" "}
+                      {nationalRank.division ?? "division"} (of{" "}
+                      {nationalRank.country.division.of})
+                    </p>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {sorted.length > 0 && (
+        <div className="space-y-3 rounded-lg border border-neutral-200 bg-neutral-50 p-3 dark:border-neutral-800 dark:bg-neutral-900/50">
           <h2 className="text-sm font-semibold text-neutral-800 dark:text-neutral-100">
             Home club standing
           </h2>
@@ -498,26 +720,41 @@ export default function ResultsPage() {
           {clubRankLoading && Object.keys(clubRanks).length === 0 ? (
             <p className="text-sm text-neutral-500">Computing…</p>
           ) : (
-            <div className="space-y-1">
-              {[...sorted].reverse().map((r) => {
-                const cr = clubRanks[r.id];
-                if (!cr?.overall) return null;
-                return (
-                  <p key={r.id} className="text-sm">
-                    <span className="font-medium">
-                      {formatDate(r.match_date)}
-                    </span>
-                    {": "}
-                    {ordinal(cr.overall.rank)} of {cr.overall.of} at{" "}
-                    {cr.clubName}
-                    {cr.division &&
-                      ` · ${ordinal(cr.division.rank)} of ${cr.division.of} in ${r.division}`}
-                    {cr.class &&
-                      ` · ${ordinal(cr.class.rank)} of ${cr.class.of} in ${r.class}`}
-                  </p>
-                );
-              })}
-            </div>
+            <>
+              <div className="flex flex-wrap gap-4">
+                {[...sorted].reverse().map((r) => {
+                  const cr = clubRanks[r.id];
+                  if (!cr?.division) return null;
+                  return (
+                    <DivisionTarget
+                      key={r.id}
+                      date={r.match_date}
+                      division={r.division}
+                      rank={cr.division.rank}
+                      of={cr.division.of}
+                    />
+                  );
+                })}
+              </div>
+              <div className="space-y-1">
+                {[...sorted].reverse().map((r) => {
+                  const cr = clubRanks[r.id];
+                  if (!cr?.overall) return null;
+                  return (
+                    <p key={r.id} className="text-sm">
+                      <span className="font-medium">
+                        {formatDate(r.match_date)}
+                      </span>
+                      {": "}
+                      {ordinal(cr.overall.rank)} of {cr.overall.of} at{" "}
+                      {cr.clubName}
+                      {cr.class &&
+                        ` · ${ordinal(cr.class.rank)} of ${cr.class.of} in ${r.class}`}
+                    </p>
+                  );
+                })}
+              </div>
+            </>
           )}
         </div>
       )}
