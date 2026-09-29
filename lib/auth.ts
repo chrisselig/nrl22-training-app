@@ -1,7 +1,11 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
 export const AUTH_COOKIE_NAME = "nrl22_session";
-const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+// Long-lived on purpose: this is a personal, single-password PWA, and iOS
+// treats a home-screen "standalone" app as a separate storage container from
+// Safari that evicts more readily — a short TTL meant re-login on nearly
+// every visit.
+export const SESSION_TTL_MS = 365 * 24 * 60 * 60 * 1000; // 1 year
 
 function getSecret(): string {
   const secret = process.env.SESSION_SECRET;
