@@ -19,7 +19,7 @@ function holdFor(
   value: number,
 ) {
   const distanceYd = unit === "m" ? distance * YD_PER_M : distance;
-  return (distanceYd / 100) * wind * value / adjustedGun;
+  return ((distanceYd / 100) * wind * value) / adjustedGun;
 }
 
 export function GunNumberCalculator() {
@@ -38,11 +38,12 @@ export function GunNumberCalculator() {
   const clockValue = Number(value);
   const custom = Number(customDistance);
 
-  const adjustedGun =
-    gun && ref && act ? gun * (act / ref) : null;
+  const adjustedGun = gun && ref && act ? gun * (act / ref) : null;
 
   const tableReady =
-    adjustedGun !== null && Number.isFinite(windMph) && Number.isFinite(clockValue);
+    adjustedGun !== null &&
+    Number.isFinite(windMph) &&
+    Number.isFinite(clockValue);
 
   return (
     <div className="space-y-3 rounded-md border border-neutral-200 p-3 dark:border-neutral-800">
@@ -183,26 +184,44 @@ export function GunNumberCalculator() {
                     {custom} {unit} (custom)
                   </td>
                   <td className="p-2">
-                    {holdFor(custom, unit, adjustedGun!, windMph, clockValue).toFixed(2)}{" "}
+                    {holdFor(
+                      custom,
+                      unit,
+                      adjustedGun!,
+                      windMph,
+                      clockValue,
+                    ).toFixed(2)}{" "}
                     MIL
                   </td>
                 </tr>
               )}
               {tableReady &&
                 DISTANCES.map((d) => (
-                  <tr key={d} className="border-t border-neutral-200 dark:border-neutral-800">
+                  <tr
+                    key={d}
+                    className="border-t border-neutral-200 dark:border-neutral-800"
+                  >
                     <td className="p-2">
                       {d} {unit}
                     </td>
                     <td className="p-2">
-                      {holdFor(d, unit, adjustedGun!, windMph, clockValue).toFixed(2)}{" "}
+                      {holdFor(
+                        d,
+                        unit,
+                        adjustedGun!,
+                        windMph,
+                        clockValue,
+                      ).toFixed(2)}{" "}
                       MIL
                     </td>
                   </tr>
                 ))}
               {!tableReady && (
                 <tr>
-                  <td className="p-2 text-neutral-500 dark:text-neutral-400" colSpan={2}>
+                  <td
+                    className="p-2 text-neutral-500 dark:text-neutral-400"
+                    colSpan={2}
+                  >
                     Fill in gun number, fps, wind, and clock value above.
                   </td>
                 </tr>
