@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
 const inputClass =
   "w-full rounded-md border border-neutral-300 bg-white px-2 py-1.5 text-sm text-neutral-900 focus:border-blue-500 focus:outline-none dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100";
@@ -23,7 +24,7 @@ function holdFor(
 }
 
 export function GunNumberCalculator() {
-  const [gunNumber, setGunNumber] = useState("8.3");
+  const [gunNumber, setGunNumber] = useState("10");
   const [referenceFps, setReferenceFps] = useState("");
   const [actualFps, setActualFps] = useState("");
   const [wind, setWind] = useState("");
@@ -38,7 +39,9 @@ export function GunNumberCalculator() {
   const clockValue = Number(value);
   const custom = Number(customDistance);
 
-  const adjustedGun = gun && ref && act ? gun * (act / ref) : null;
+  // fps fields are optional — no chrono reading yet still gets a hold,
+  // just without the fps-scaling adjustment applied.
+  const adjustedGun = gun ? (ref && act ? gun * (act / ref) : gun) : null;
 
   const tableReady =
     adjustedGun !== null &&
@@ -60,6 +63,13 @@ export function GunNumberCalculator() {
             value={gunNumber}
             onChange={(e) => setGunNumber(e.target.value)}
           />
+          <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+            10 = generic starting constant. True your own for better accuracy —{" "}
+            <Link href="/wind/notes" className="underline">
+              how to true
+            </Link>
+            .
+          </p>
         </div>
         <div>
           <label className={labelClass} htmlFor="referenceFps">
