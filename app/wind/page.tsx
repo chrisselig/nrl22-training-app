@@ -388,64 +388,7 @@ export default function WindPage() {
       </section>
 
       <section className={cardClass}>
-        <h2 className="text-sm font-semibold">
-          5. A Representative Hold Table
-        </h2>
-        <p className="text-xs text-neutral-600 dark:text-neutral-400">
-          Full-value (3/9 o&apos;clock), 10 mph wind, computed from a typical
-          subsonic .22LR match load (40gr, MV ~1050 fps, BC .130 G1) — the
-          closest thing to a &ldquo;generic NRL22 round.&rdquo; Multiply by your
-          wind clock value; scale roughly linearly for other speeds (5 mph ≈
-          half this hold, 15 mph ≈ one-and-a-half times it).
-        </p>
-        <div className={tableWrapClass}>
-          <table className={tableClass}>
-            <thead className={theadClass}>
-              <tr>
-                <th className="p-2">Range</th>
-                <th className="p-2">Full-value 10 mph hold</th>
-              </tr>
-            </thead>
-            <tbody>
-              {[
-                ["50 yd", "0.7 MIL"],
-                ["75 yd", "0.9 MIL"],
-                ["100 yd", "1.2 MIL"],
-                ["150 yd", "1.7 MIL"],
-                ["200 yd", "2.2 MIL"],
-                ["50 m", "0.7 MIL"],
-                ["100 m", "1.3 MIL"],
-                ["200 m", "2.4 MIL"],
-                ["300 m", "3.5 MIL"],
-                ["400 m", "4.5 MIL"],
-              ].map(([range, hold]) => (
-                <tr key={range} className={rowClass}>
-                  <td className="p-2">{range}</td>
-                  <td className="p-2">{hold}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <div className={cautionClass}>
-          <b>A starting point, not your data.</b> Change the bullet, muzzle
-          velocity, or altitude and every number here moves. Treat this as
-          roughly what to expect walking onto a stage without a meter, then
-          build your real numbers with your own chronograph/ballistic app and
-          confirm by truing against actual impacts.
-        </div>
-        <p className="text-xs text-neutral-600 dark:text-neutral-400">
-          Two corrections worth naming: wind drift does <b>not</b> scale with
-          distance squared — 100 to 200 yards roughly doubles the hold, not
-          quadruples it. And there&apos;s no verified rimfire-specific
-          &ldquo;wind formula shortcut&rdquo; — the range-times-speed shortcuts
-          used for centerfire don&apos;t have a verified constant for slow,
-          rapidly-decelerating rimfire bullets.
-        </p>
-      </section>
-
-      <section className={cardClass}>
-        <h2 className="text-sm font-semibold">6. Your Gun Number</h2>
+        <h2 className="text-sm font-semibold">5. Your Gun Number</h2>
         <p className="text-xs text-neutral-600 dark:text-neutral-400">
           A single personal constant for mental-math wind holds, built from one
           of your own trued holds — not a borrowed universal formula.
