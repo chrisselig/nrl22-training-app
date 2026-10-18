@@ -5,7 +5,7 @@ import { routeFromCalgary } from "@/lib/osrm";
 
 export async function GET() {
   const events = await sql`
-    select id, name, event_date, city, province, address, lat, lng,
+    select id, name, series, event_date, city, province, address, lat, lng,
            drive_km, drive_minutes, registration_url, notes, created_at, updated_at
     from events
     order by event_date asc
@@ -16,6 +16,7 @@ export async function GET() {
 export async function POST(request: Request) {
   const body = (await request.json()) as {
     name?: unknown;
+    series?: unknown;
     eventDate?: unknown;
     city?: unknown;
     province?: unknown;
@@ -26,6 +27,9 @@ export async function POST(request: Request) {
 
   if (typeof body.name !== "string" || body.name.trim() === "") {
     return NextResponse.json({ error: "name is required" }, { status: 400 });
+  }
+  if (typeof body.series !== "string" || body.series.trim() === "") {
+    return NextResponse.json({ error: "series is required" }, { status: 400 });
   }
   if (typeof body.eventDate !== "string" || body.eventDate.trim() === "") {
     return NextResponse.json(
@@ -59,16 +63,16 @@ export async function POST(request: Request) {
 
   const [event] = await sql`
     insert into events (
-      name, event_date, city, province, address, lat, lng,
+      name, series, event_date, city, province, address, lat, lng,
       drive_km, drive_minutes, registration_url, notes
     )
     values (
-      ${body.name}, ${body.eventDate}, ${body.city}, ${body.province},
+      ${body.name}, ${body.series}, ${body.eventDate}, ${body.city}, ${body.province},
       ${address || null}, ${point?.lat ?? null}, ${point?.lng ?? null},
       ${route?.km ?? null}, ${route?.minutes ?? null},
       ${registrationUrl}, ${notes}
     )
-    returning id, name, event_date, city, province, address, lat, lng,
+    returning id, name, series, event_date, city, province, address, lat, lng,
               drive_km, drive_minutes, registration_url, notes, created_at, updated_at
   `;
 

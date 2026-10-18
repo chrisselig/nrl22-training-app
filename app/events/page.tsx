@@ -7,9 +7,12 @@ import { googleMapsDirectionsUrl } from "@/lib/driving-distance";
 
 const DRIVE_RANGE_OPTIONS = [3, 5, 10] as const;
 
+const SERIES_SUGGESTIONS = ["NRL22 Canada", "PRS Rimfire"];
+
 interface EventRow {
   id: number;
   name: string;
+  series: string;
   event_date: string;
   city: string;
   province: string;
@@ -89,6 +92,7 @@ export default function EventsPage() {
 
   async function handleAddEvent(body: {
     name: string;
+    series: string;
     eventDate: string;
     city: string;
     province: string;
@@ -130,8 +134,9 @@ export default function EventsPage() {
   return (
     <div className="mx-auto w-full max-w-3xl flex-1 space-y-6 p-4 lg:p-6">
       <PageHeader eyebrow="Plan" title="Events">
-        NRL22 Canada matches, with driving distance/time from Calgary (via OSRM
-        routing) so you can spot day-trip-able matches.
+        .22 rimfire precision matches (NRL22 Canada, PRS Rimfire, and others),
+        with driving distance/time from Calgary (via OSRM routing) so you can
+        spot day-trip-able matches.
       </PageHeader>
 
       {error && (
@@ -220,7 +225,12 @@ function EventCard({
     <div className="rounded-lg border border-neutral-200 bg-white p-3 dark:border-neutral-800 dark:bg-neutral-900">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h3 className="font-medium">{event.name}</h3>
+          <div className="flex items-center gap-2">
+            <h3 className="font-medium">{event.name}</h3>
+            <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-medium text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">
+              {event.series}
+            </span>
+          </div>
           <p className="text-xs text-neutral-500 dark:text-neutral-400">
             {new Date(event.event_date).toLocaleDateString("en-CA", {
               weekday: "short",
@@ -282,6 +292,7 @@ function AddEventForm({
 }: {
   onAdd: (body: {
     name: string;
+    series: string;
     eventDate: string;
     city: string;
     province: string;
@@ -291,6 +302,7 @@ function AddEventForm({
   }) => void;
 }) {
   const [name, setName] = useState("");
+  const [series, setSeries] = useState("NRL22 Canada");
   const [eventDate, setEventDate] = useState("");
   const [city, setCity] = useState("");
   const [province, setProvince] = useState("AB");
@@ -300,9 +312,17 @@ function AddEventForm({
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!name.trim() || !eventDate || !city.trim() || !province.trim()) return;
+    if (
+      !name.trim() ||
+      !series.trim() ||
+      !eventDate ||
+      !city.trim() ||
+      !province.trim()
+    )
+      return;
     onAdd({
       name: name.trim(),
+      series: series.trim(),
       eventDate,
       city: city.trim(),
       province: province.trim(),
@@ -338,6 +358,24 @@ function AddEventForm({
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g. Foothills Precision Rifle Club Match"
           />
+        </div>
+        <div className="col-span-2">
+          <label className={labelClass} htmlFor="eventSeries">
+            Series / league
+          </label>
+          <input
+            id="eventSeries"
+            list="series-suggestions"
+            className={inputClass}
+            value={series}
+            onChange={(e) => setSeries(e.target.value)}
+            placeholder="e.g. NRL22 Canada, PRS Rimfire"
+          />
+          <datalist id="series-suggestions">
+            {SERIES_SUGGESTIONS.map((s) => (
+              <option key={s} value={s} />
+            ))}
+          </datalist>
         </div>
         <div>
           <label className={labelClass} htmlFor="eventDate">
@@ -389,14 +427,14 @@ function AddEventForm({
       </div>
       <div>
         <label className={labelClass} htmlFor="eventRegistrationUrl">
-          Registration link (PractiScore match page)
+          Registration link
         </label>
         <input
           id="eventRegistrationUrl"
           className={inputClass}
           value={registrationUrl}
           onChange={(e) => setRegistrationUrl(e.target.value)}
-          placeholder="https://practiscore.com/..."
+          placeholder="https://practiscore.com/... or the match's own site"
         />
       </div>
       <div>

@@ -146,3 +146,8 @@ create table if not exists events (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+-- Opened up beyond NRL22 Canada to any .22 rimfire precision series (PRS
+-- Rimfire, etc) — each lives on its own site, not all on PractiScore, so
+-- the series is tracked per event rather than assumed.
+alter table events add column if not exists series text not null default 'NRL22 Canada';
