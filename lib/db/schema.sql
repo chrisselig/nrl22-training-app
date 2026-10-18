@@ -122,3 +122,27 @@ alter table cof_stages add column if not exists image_mime text;
 -- of being retyped, while prop_name_freeform/position stay overridable for
 -- stages that were logged before that month's COF was ever imported.
 alter table stage_logs add column if not exists cof_stage_id integer references cof_stages(id) on delete set null;
+
+-- NRL22 Canada publishes its match calendar on PractiScore, which sits
+-- behind a Cloudflare bot challenge that blocks plain server-side fetches —
+-- so events are entered by hand here rather than scraped. lat/lng are
+-- geocoded server-side from city/province (or address, if given) when an
+-- event is created; drive_km/drive_minutes come from a one-time OSRM
+-- routing lookup at the same time, so day-trip distance from Calgary is a
+-- real driving estimate rather than a live per-page-load API call.
+create table if not exists events (
+  id serial primary key,
+  name text not null,
+  event_date date not null,
+  city text not null,
+  province text not null,
+  address text,
+  lat numeric,
+  lng numeric,
+  drive_km numeric,
+  drive_minutes numeric,
+  registration_url text,
+  notes text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
